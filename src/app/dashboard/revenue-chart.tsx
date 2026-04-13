@@ -16,25 +16,25 @@ export default function RevenueChart({ data }: Props) {
   return (
     <ResponsiveContainer width="100%" height={260}>
       <BarChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#E6E7EA" />
+        <CartesianGrid strokeDasharray="3 3" stroke="#EBEBF5" />
         <XAxis
           dataKey="mes"
-          tick={{ fontSize: 11, fill: '#6B6E84' }}
+          tick={{ fontSize: 11, fill: '#62656F' }}
           axisLine={false}
           tickLine={false}
         />
         <YAxis
           tickFormatter={(v) => `R$${Math.round(v / 1000)}k`}
-          tick={{ fontSize: 11, fill: '#6B6E84' }}
+          tick={{ fontSize: 11, fill: '#62656F' }}
           width={60}
           axisLine={false}
           tickLine={false}
         />
         <Tooltip
-          cursor={{ fill: '#F3F3F5' }}
+          cursor={{ fill: '#F9F9F9' }}
           contentStyle={{
             borderRadius: 8,
-            border: '1px solid #E6E7EA',
+            border: '1px solid #EBEBF5',
             fontSize: 12,
             fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif',
           }}
@@ -47,7 +47,7 @@ export default function RevenueChart({ data }: Props) {
             ]
           }}
         />
-        <Bar dataKey="receita" fill="#0055FF" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="receita" fill="#0C1640" radius={[6, 6, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   )

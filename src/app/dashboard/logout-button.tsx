@@ -21,17 +21,19 @@ export default function LogoutButton() {
     <button
       onClick={handleLogout}
       disabled={loading}
-      className="body inline-flex items-center gap-1.5 px-3 rounded-full transition disabled:opacity-50"
+      className="body inline-flex items-center gap-1.5 px-3 rounded-lg transition disabled:opacity-50"
       style={{
-        background: 'transparent',
-        color: 'var(--color-muted-fg)',
+        background: 'rgba(255, 255, 255, 0.1)',
+        color: 'white',
         height: '36px',
       }}
       onMouseEnter={(e) =>
         !e.currentTarget.disabled &&
-        (e.currentTarget.style.background = 'var(--color-muted)')
+        (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)')
       }
-      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+      onMouseLeave={(e) =>
+        (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)')
+      }
     >
       <LogOut size={14} />
       {loading ? 'Saindo...' : 'Sair'}

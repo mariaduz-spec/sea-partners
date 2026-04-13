@@ -31,18 +31,19 @@ export default async function DashboardPage() {
           style={{
             background: 'var(--color-background)',
             border: '1px solid var(--color-border)',
+            boxShadow: 'var(--shadow-card)',
           }}
         >
           <div
             className="inline-flex items-center justify-center w-14 h-14 rounded-full mb-4"
             style={{
-              background: 'var(--color-primary-light)',
-              color: 'var(--color-primary)',
+              background: 'var(--color-coral-light)',
+              color: 'var(--color-coral)',
             }}
           >
             <MailQuestion size={24} />
           </div>
-          <p className="p-ui" style={{ color: 'var(--color-foreground)' }}>
+          <p className="p-ui" style={{ color: 'var(--color-navy)' }}>
             Conta ainda não vinculada
           </p>
           <p
@@ -70,19 +71,24 @@ export default async function DashboardPage() {
 
   const imoveisAtivos = imoveis.filter((i) => i.receita_12m > 0)
   const imoveisInativos = imoveis.filter((i) => i.receita_12m === 0)
+  const mediaComissaoMensal =
+    summary.meses_distintos > 0 ? summary.comissao_2pct / summary.meses_distintos : 0
 
   return (
     <DashboardShell email={user.email ?? ''} partnerName={partner.display_name}>
       {/* Saudacao */}
       <div className="mb-6">
-        <h3 style={{ color: 'var(--color-foreground)' }}>
-          Olá, {partner.display_name}
+        <span className="eyebrow" style={{ color: 'var(--color-coral)' }}>
+          Olá 👋
+        </span>
+        <h3 className="mt-1" style={{ color: 'var(--color-navy)' }}>
+          {partner.display_name}
         </h3>
         <p
           className="body-reg mt-1"
           style={{ color: 'var(--color-muted-fg)' }}
         >
-          Aqui está o desempenho dos imóveis que você indicou nos últimos 12 meses.
+          Desempenho dos imóveis que você indicou nos últimos 12 meses.
         </p>
       </div>
 
@@ -98,13 +104,9 @@ export default async function DashboardPage() {
           icon={<Wallet size={20} />}
           label="Sua comissão (2%)"
           value={formatBRL(summary.comissao_2pct)}
-          sub={`${summary.meses_distintos} meses com receita · média R$ ${
-            summary.meses_distintos > 0
-              ? Math.round(
-                  summary.comissao_2pct / summary.meses_distintos
-                ).toLocaleString('pt-BR')
-              : 0
-          }/mês`}
+          sub={`${summary.meses_distintos} meses · média ${formatBRL(
+            Math.round(mediaComissaoMensal)
+          )}/mês`}
           accent
         />
       </div>
@@ -115,9 +117,10 @@ export default async function DashboardPage() {
         style={{
           background: 'var(--color-background)',
           border: '1px solid var(--color-border)',
+          boxShadow: 'var(--shadow-card)',
         }}
       >
-        <h4 style={{ color: 'var(--color-foreground)' }}>Evolução mensal</h4>
+        <h4 style={{ color: 'var(--color-navy)' }}>Evolução mensal</h4>
         <p
           className="detail-reg mt-1 mb-4"
           style={{ color: 'var(--color-muted-fg)' }}
@@ -133,41 +136,40 @@ export default async function DashboardPage() {
         style={{
           background: 'var(--color-background)',
           border: '1px solid var(--color-border)',
+          boxShadow: 'var(--shadow-card)',
         }}
       >
-        <div className="flex items-start justify-between gap-4 mb-4">
-          <div className="flex items-start gap-3">
-            <div
-              className="inline-flex items-center justify-center w-10 h-10 rounded-full shrink-0"
-              style={{
-                background: 'var(--color-primary-light)',
-                color: 'var(--color-primary)',
-              }}
+        <div className="flex items-start gap-3 mb-4">
+          <div
+            className="inline-flex items-center justify-center w-10 h-10 rounded-lg shrink-0"
+            style={{
+              background: 'var(--color-coral-light)',
+              color: 'var(--color-coral)',
+            }}
+          >
+            <Building2 size={18} />
+          </div>
+          <div>
+            <h4 style={{ color: 'var(--color-navy)' }}>
+              Imóveis rendendo receita ({imoveisAtivos.length})
+            </h4>
+            <p
+              className="detail-reg mt-1"
+              style={{ color: 'var(--color-muted-fg)' }}
             >
-              <Building2 size={18} />
-            </div>
-            <div>
-              <h4 style={{ color: 'var(--color-foreground)' }}>
-                Imóveis rendendo receita ({imoveisAtivos.length})
-              </h4>
-              <p
-                className="detail-reg mt-1"
-                style={{ color: 'var(--color-muted-fg)' }}
-              >
-                Ordenados por receita do período. Comissão = 2% da receita de reservas.
-              </p>
-            </div>
+              Ordenados por receita do período · comissão = 2% da receita de reservas
+            </p>
           </div>
         </div>
         <ImoveisTable imoveis={imoveisAtivos} emptyLabel="Nenhum imóvel com receita no período." />
       </div>
 
-      {/* Imoveis sem receita — opcional */}
+      {/* Imoveis sem receita */}
       {imoveisInativos.length > 0 && (
         <details
           className="rounded-xl p-6"
           style={{
-            background: 'var(--color-muted)',
+            background: 'var(--color-background)',
             border: '1px solid var(--color-border)',
           }}
         >
@@ -198,19 +200,19 @@ function DashboardShell({
   children: React.ReactNode
 }) {
   return (
-    <div className="min-h-screen" style={{ background: 'var(--color-muted)' }}>
+    <div className="min-h-screen" style={{ background: 'var(--color-surface)' }}>
       <header
         style={{
-          background: 'var(--color-background)',
-          borderBottom: '1px solid var(--color-border)',
+          background: 'var(--color-navy)',
+          color: 'white',
         }}
       >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div
-              className="inline-flex items-center justify-center w-9 h-9 rounded-full shrink-0"
+              className="inline-flex items-center justify-center w-9 h-9 rounded-lg shrink-0"
               style={{
-                background: 'var(--color-primary)',
+                background: 'var(--color-coral)',
                 color: 'white',
               }}
             >
@@ -219,13 +221,10 @@ function DashboardShell({
               </span>
             </div>
             <div>
-              <p className="body" style={{ color: 'var(--color-foreground)' }}>
+              <p className="body" style={{ color: 'white' }}>
                 Sea Partners
               </p>
-              <p
-                className="detail-reg"
-                style={{ color: 'var(--color-muted-fg)' }}
-              >
+              <p className="detail-reg" style={{ color: 'rgba(255, 255, 255, 0.6)' }}>
                 {partnerName ?? 'Portal do parceiro'}
               </p>
             </div>
@@ -233,7 +232,7 @@ function DashboardShell({
           <div className="flex items-center gap-3">
             <span
               className="detail-reg hidden sm:inline"
-              style={{ color: 'var(--color-muted-fg)' }}
+              style={{ color: 'rgba(255, 255, 255, 0.7)' }}
             >
               {email}
             </span>
@@ -265,23 +264,25 @@ function MetricCard({
       style={
         accent
           ? {
-              background: 'var(--color-primary)',
+              background: 'var(--color-coral)',
               color: 'white',
+              boxShadow: '0 8px 24px rgba(241, 96, 93, 0.28)',
             }
           : {
               background: 'var(--color-background)',
               border: '1px solid var(--color-border)',
+              boxShadow: 'var(--shadow-card)',
             }
       }
     >
       <div className="flex items-center gap-2 mb-3">
         <div
-          className="inline-flex items-center justify-center w-8 h-8 rounded-full"
+          className="inline-flex items-center justify-center w-8 h-8 rounded-lg"
           style={{
             background: accent
-              ? 'rgba(255, 255, 255, 0.15)'
-              : 'var(--color-primary-light)',
-            color: accent ? 'white' : 'var(--color-primary)',
+              ? 'rgba(255, 255, 255, 0.2)'
+              : 'var(--color-navy)',
+            color: 'white',
           }}
         >
           {icon}
@@ -289,7 +290,7 @@ function MetricCard({
         <p
           className="body"
           style={{
-            color: accent ? 'rgba(255, 255, 255, 0.8)' : 'var(--color-muted-fg)',
+            color: accent ? 'rgba(255, 255, 255, 0.85)' : 'var(--color-muted-fg)',
           }}
         >
           {label}
@@ -297,9 +298,9 @@ function MetricCard({
       </div>
       <p className="metric">{value}</p>
       <p
-        className="detail-reg mt-2"
+        className="detail-reg mt-3"
         style={{
-          color: accent ? 'rgba(255, 255, 255, 0.7)' : 'var(--color-muted-fg)',
+          color: accent ? 'rgba(255, 255, 255, 0.75)' : 'var(--color-muted-fg)',
         }}
       >
         {sub}
@@ -336,36 +337,34 @@ function ImoveisTable({
     <div className="overflow-x-auto">
       <table className="w-full">
         <thead>
-          <tr
-            style={{ borderBottom: '1px solid var(--color-border)' }}
-          >
+          <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
             <th
-              className="detail text-left py-2"
-              style={{ color: 'var(--color-muted-fg)', fontWeight: 500 }}
+              className="eyebrow text-left py-3"
+              style={{ color: 'var(--color-muted-fg)' }}
             >
               Código
             </th>
             <th
-              className="detail text-left py-2"
-              style={{ color: 'var(--color-muted-fg)', fontWeight: 500 }}
+              className="eyebrow text-left py-3"
+              style={{ color: 'var(--color-muted-fg)' }}
             >
               Status
             </th>
             <th
-              className="detail text-right py-2"
-              style={{ color: 'var(--color-muted-fg)', fontWeight: 500 }}
+              className="eyebrow text-right py-3"
+              style={{ color: 'var(--color-muted-fg)' }}
             >
               Receita 12m
             </th>
             <th
-              className="detail text-right py-2"
-              style={{ color: 'var(--color-muted-fg)', fontWeight: 500 }}
+              className="eyebrow text-right py-3"
+              style={{ color: 'var(--color-muted-fg)' }}
             >
               Comissão
             </th>
             <th
-              className="detail text-right py-2"
-              style={{ color: 'var(--color-muted-fg)', fontWeight: 500 }}
+              className="eyebrow text-right py-3"
+              style={{ color: 'var(--color-muted-fg)' }}
             >
               Meses ativos
             </th>
@@ -373,10 +372,7 @@ function ImoveisTable({
         </thead>
         <tbody>
           {imoveis.map((i) => (
-            <tr
-              key={i.apto_id}
-              style={{ borderBottom: '1px solid var(--color-border)' }}
-            >
+            <tr key={i.apto_id} style={{ borderBottom: '1px solid var(--color-border)' }}>
               <td
                 className="body py-3 font-mono"
                 style={{ color: 'var(--color-foreground)' }}
@@ -398,7 +394,7 @@ function ImoveisTable({
               </td>
               <td
                 className="body py-3 text-right tabular-nums"
-                style={{ color: 'var(--color-foreground)' }}
+                style={{ color: 'var(--color-coral)' }}
               >
                 {i.comissao_12m > 0 ? (
                   formatBRL(i.comissao_12m)
@@ -424,7 +420,7 @@ function StatusPill({ status }: { status: string }) {
   const isActive = status === 'Active'
   return (
     <span
-      className="detail inline-block px-2 py-0.5 rounded-full"
+      className="detail inline-block px-2.5 py-1 rounded-full"
       style={
         isActive
           ? {

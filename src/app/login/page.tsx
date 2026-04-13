@@ -33,31 +33,31 @@ export default function LoginPage() {
   return (
     <div
       className="min-h-screen flex items-center justify-center p-6"
-      style={{ background: 'var(--color-muted)' }}
+      style={{ background: 'var(--color-surface)' }}
     >
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <div
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-4"
+            className="eyebrow inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-5"
             style={{
-              background: 'var(--color-primary-light)',
-              color: 'var(--color-primary)',
+              background: 'var(--color-navy)',
+              color: 'white',
             }}
           >
-            <span className="detail">SEA PARTNERS</span>
+            <span>SEA PARTNERS</span>
           </div>
-          <h2 style={{ color: 'var(--color-foreground)' }}>Portal do parceiro</h2>
+          <h2 style={{ color: 'var(--color-navy)' }}>Portal do parceiro</h2>
           <p
             className="body-reg mt-2"
             style={{ color: 'var(--color-muted-fg)' }}
           >
-            Acompanhe suas indicações, receita e comissão em tempo real.
+            Acompanhe suas indicações, receita dos imóveis e comissão em tempo real.
           </p>
         </div>
 
         {status === 'sent' ? (
           <div
-            className="rounded-xl p-6 text-center"
+            className="rounded-xl p-8 text-center"
             style={{
               background: 'var(--color-background)',
               border: '1px solid var(--color-border)',
@@ -73,7 +73,7 @@ export default function LoginPage() {
             >
               <CheckCircle2 size={24} />
             </div>
-            <p className="p-ui" style={{ color: 'var(--color-foreground)' }}>
+            <p className="p-ui" style={{ color: 'var(--color-navy)' }}>
               Link enviado!
             </p>
             <p
@@ -87,7 +87,7 @@ export default function LoginPage() {
               e clica no link pra entrar.
             </p>
             <p
-              className="detail-reg mt-4"
+              className="detail-reg mt-6"
               style={{ color: 'var(--color-muted-fg)' }}
             >
               O link expira em 1 hora. Pode fechar essa aba.
@@ -121,12 +121,12 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={status === 'sending'}
-                  className="body-reg w-full rounded-lg pl-10 pr-3 outline-none"
+                  className="body-reg w-full rounded-lg pl-10 pr-3 outline-none transition"
                   style={{
                     background: 'var(--color-background)',
-                    border: '1px solid var(--color-border)',
+                    border: '1px solid var(--color-border-strong)',
                     color: 'var(--color-foreground)',
-                    height: '44px',
+                    height: '48px',
                   }}
                 />
               </div>
@@ -135,18 +135,18 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={status === 'sending' || !email}
-              className="body w-full rounded-full inline-flex items-center justify-center gap-2 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="body w-full rounded-lg inline-flex items-center justify-center gap-2 transition disabled:opacity-50 disabled:cursor-not-allowed"
               style={{
-                background: 'var(--color-primary)',
+                background: 'var(--color-coral)',
                 color: 'white',
-                height: '44px',
+                height: '48px',
               }}
               onMouseEnter={(e) =>
                 !e.currentTarget.disabled &&
-                (e.currentTarget.style.background = 'var(--color-primary-hover)')
+                (e.currentTarget.style.background = 'var(--color-navy)')
               }
               onMouseLeave={(e) =>
-                (e.currentTarget.style.background = 'var(--color-primary)')
+                (e.currentTarget.style.background = 'var(--color-coral)')
               }
             >
               {status === 'sending' ? 'Enviando...' : 'Entrar com magic link'}

@@ -1,36 +1,52 @@
 @import "tailwindcss";
 
 /* ─────────────────────────────────────────────
-   BLUEZONE DESIGN SYSTEM - tokens e tipografia
+   SEAZONE - tokens inspirados no site oficial
+   https://seazone.com.br/
    ───────────────────────────────────────────── */
 
 :root {
-  /* Primary */
-  --color-primary: #0055FF;
-  --color-primary-hover: #0044CC;
-  --color-primary-light: #E8F0FE;
+  /* Brand */
+  --color-navy: #0C1640;              /* navy escuro — headers, textos fortes, backgrounds escuros */
+  --color-navy-hover: #19224F;
+  --color-blue: #0D4BD0;              /* azul brilhante — links, highlights, graficos */
+  --color-blue-hover: #0A3BA8;
 
-  /* Neutral */
-  --color-foreground: #080E32;
+  --color-coral: #F1605D;             /* coral — CTA principal da marca */
+  --color-coral-hover: #DE4845;
+  --color-coral-light: #FDECEC;
+
+  /* Neutros */
+  --color-foreground: #19191A;         /* text forte (quase preto) */
+  --color-foreground-mid: #394760;     /* text medio */
+  --color-muted-fg: #62656F;           /* text secundario */
   --color-background: #FFFFFF;
+  --color-surface: #F9F9F9;            /* off-white para fundos de secao */
   --color-muted: #F3F3F5;
-  --color-muted-fg: #6B6E84;
-  --color-border: #E6E7EA;
+  --color-border: #EBEBF5;
+  --color-border-strong: #D9DCDF;
 
   /* Semantic */
-  --color-success: #22C55E;
-  --color-error: #E7000B;
-  --color-warning: #F54A00;
-  --color-info: #0055FF;
+  --color-success: #047755;
+  --color-error: #FF2732;
+  --color-warning: #FF9900;
+
+  /* Aliases compat Bluezone/shadcn */
+  --color-primary: var(--color-coral);
+  --color-primary-hover: var(--color-coral-hover);
+  --color-primary-light: var(--color-coral-light);
 
   /* Radius */
-  --radius-lg: 8px;
-  --radius-xl: 12px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;                   /* botoes, inputs (padrao site) */
+  --radius-xl: 12px;                  /* cards */
   --radius-2xl: 16px;
   --radius-full: 9999px;
 
   /* Shadow */
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-card: 0 1px 3px rgba(12, 22, 64, 0.08);
+  --shadow-card-hover: 0 4px 12px rgba(12, 22, 64, 0.12);
 }
 
 @theme inline {
@@ -40,35 +56,45 @@
 }
 
 body {
-  background: var(--color-background);
+  background: var(--color-surface);
   color: var(--color-foreground);
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
 /* ─────────────────────────────────────────────
-   TIPOGRAFIA (Bluezone)
-   Use classes em vez de Tailwind text-size utilities
+   TIPOGRAFIA
    ───────────────────────────────────────────── */
 
 h1, .h1 { font-size: 48px; font-weight: 700; line-height: 1.1; letter-spacing: -0.02em; }
-h2, .h2 { font-size: 30px; font-weight: 500; line-height: 1.2; letter-spacing: -0.01em; }
-h3, .h3 { font-size: 24px; font-weight: 500; line-height: 1.3; }
-h4, .h4 { font-size: 20px; font-weight: 500; line-height: 1.4; }
+h2, .h2 { font-size: 30px; font-weight: 700; line-height: 1.2; letter-spacing: -0.01em; }
+h3, .h3 { font-size: 24px; font-weight: 600; line-height: 1.3; }
+h4, .h4 { font-size: 18px; font-weight: 600; line-height: 1.4; }
 
-.lead    { font-size: 20px; font-weight: 500; line-height: 1.5; }
-.large   { font-size: 18px; font-weight: 500; line-height: 1.5; }
-.p-ui    { font-size: 16px; font-weight: 700; line-height: 1.6; }
+.lead    { font-size: 18px; font-weight: 400; line-height: 1.5; }
+.p-ui    { font-size: 16px; font-weight: 600; line-height: 1.5; }
 .body    { font-size: 14px; font-weight: 500; line-height: 1.5; }
 .body-reg { font-size: 14px; font-weight: 400; line-height: 1.5; }
-.detail     { font-size: 12px; font-weight: 500; line-height: 1.4; }
+.detail     { font-size: 12px; font-weight: 500; line-height: 1.4; letter-spacing: 0.01em; }
 .detail-reg { font-size: 12px; font-weight: 400; line-height: 1.4; }
 
-/* Numero grande pra metric cards — nao bate com escala default */
+/* Numero grande pra metric cards */
 .metric {
-  font-size: 36px;
+  font-size: 40px;
   font-weight: 700;
   line-height: 1;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
+}
+@media (min-width: 768px) {
+  .metric { font-size: 48px; }
+}
+
+/* Eyebrow — pequeno texto em caps */
+.eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
