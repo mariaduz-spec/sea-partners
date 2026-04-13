@@ -129,7 +129,7 @@ export async function POST(req: Request) {
     const result = streamText({
       model: anthropic('claude-sonnet-4-5'),
       system: `${SYSTEM_PROMPT}\n\n${contexto}`,
-      messages: convertToModelMessages(messages),
+      messages: await convertToModelMessages(messages),
       temperature: 0.4,
     })
 
