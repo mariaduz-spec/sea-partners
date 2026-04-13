@@ -34,6 +34,7 @@ export class NektError extends Error {
  */
 export async function queryNekt<T = Record<string, string>>(sql: string): Promise<T[]> {
   const apiKey = process.env.NEKT_API_KEY
+  console.log('[queryNekt] API key exists:', !!apiKey)
   if (!apiKey) {
     throw new NektError('NEKT_API_KEY ausente no ambiente do server')
   }
@@ -81,11 +82,10 @@ export async function queryNekt<T = Record<string, string>>(sql: string): Promis
   const parsed = Papa.parse<T>(csv, {
     header: true,
     skipEmptyLines: true,
-    // Athena retorna valores com aspas; Papa trata por padrao.
   })
 
+  console.log('[queryNekt] rows returned:', parsed.data.length)
   if (parsed.errors.length > 0) {
-    // Nao lanca — algumas linhas com lixo podem dar warning sem invalidar o todo.
     console.warn('[nekt] CSV parse warnings:', parsed.errors.slice(0, 3))
   }
 
