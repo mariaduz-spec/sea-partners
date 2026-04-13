@@ -22,124 +22,12 @@ import {
 
 export const dynamic = 'force-dynamic'
 
-// Partner de teste para desenvolvimento (Katia Emmel - 17818)
-const DEV_PARTNER_ID = parseInt(process.env.DEV_PARTNER_ID ?? '0')
-const USE_DEV = process.env.NODE_ENV === 'development' && DEV_PARTNER_ID > 0
-
 export default async function DashboardPage() {
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Em modo dev, usa parceiro fake diretamente
-  if (USE_DEV) {
-    const devPartner = {
-      email: 'dev@seazone.com.br',
-      parceiro_id: DEV_PARTNER_ID,
-      display_name: 'Desenvolvimento (Katia Emmel)',
-    }
-
-    const [summary, imoveis, evolucao] = await Promise.all([
-      getDashboardSummary(devPartner.parceiro_id),
-      getDashboardImoveis(devPartner.parceiro_id),
-      getDashboardEvolucaoMensal(devPartner.parceiro_id),
-    ])
-
-    const imoveisAtivos = imoveis.filter((i) => i.prop_status === 'Active')
-    const imoveisInativos = imoveis.filter((i) => i.prop_status !== 'Active')
-    const proximos = evolucao.filter((m) => m.status === 'a_pagar' || m.status === 'em_apuracao')
-    const totalProximo = proximos.reduce((sum, m) => sum + m.comissao_mes, 0)
-
-    return (
-      <DashboardShell
-        email={USE_DEV ? 'dev@seazone.com.br' : (user?.email ?? '')}
-        partnerName={devPartner.display_name}
-        active="visao-geral"
-      >
-        <div className="mb-6 flex items-start justify-between gap-4">
-          <div>
-            <span className="eyebrow" style={{ color: 'var(--color-coral)' }}>
-              Modo Dev 👋
-            </span>
-            <h3 className="mt-1" style={{ color: 'var(--color-foreground)' }}>
-              {devPartner.display_name}
-            </h3>
-            <p className="body-reg mt-1" style={{ color: 'var(--color-muted-fg)' }}>
-              Dados reais do Nekt (partner_id {DEV_PARTNER_ID})
-            </p>
-          </div>
-          <div className="shrink-0 mt-1">
-            <NewIndicationDialog />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <MetricCard
-            icon={<BadgeDollarSign size={20} />}
-            label="Comissão 12m"
-            value={formatBRLCompact(summary.comissao_12m_estimada)}
-            sub={`${summary.meses_com_receita} meses com receita`}
-            accent
-          />
-          <MetricCard
-            icon={<TrendingUp size={20} />}
-            label="Média mensal"
-            value={formatBRLCompact(summary.media_comissao_mensal)}
-            sub="média por mês ativo"
-          />
-          <MetricCard
-            icon={<Wallet size={20} />}
-            label="Indicações"
-            value={String(summary.total_indicacoes)}
-            sub={`${summary.indicacoes_won} ganha${summary.indicacoes_won === 1 ? '' : 's'} · ${summary.indicacoes_in_progress} em curso`}
-          />
-        </div>
-
-        {totalProximo > 0 && (
-          <div className="rounded-xl p-4 mb-6" style={{ background: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="body">Próximos pagamentos</p>
-                <p className="detail-reg mt-1">{proximos.length} mês(es) pendente(s)</p>
-              </div>
-              <p className="metric" style={{ color: 'var(--color-coral)' }}>{formatBRL(totalProximo)}</p>
-            </div>
-          </div>
-        )}
-
-        <div className="rounded-xl p-6 mb-6" style={{ background: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
-          <h4>Evolução mensal</h4>
-          <p className="detail-reg mt-1 mb-4">Receita dos imóveis nos últimos 12 meses</p>
-          <CommissionChart data={evolucao} />
-        </div>
-
-        <div className="rounded-xl p-6 mb-6" style={{ background: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
-          <div className="flex items-start gap-3 mb-4">
-            <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg" style={{ background: 'var(--color-coral-light)', color: 'var(--color-coral)' }}>
-              <Building2 size={18} />
-            </div>
-            <div>
-              <h4>Seus imóveis ({imoveis.length} indicações)</h4>
-              <p className="detail-reg mt-1">Tipo de comissão e receita gerada</p>
-            </div>
-          </div>
-          <ImoveisTable imoveis={imoveisAtivos} emptyLabel="Nenhum imóvel ativo." />
-        </div>
-
-        {imoveisInativos.length > 0 && (
-          <details className="rounded-xl p-6" style={{ background: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
-            <summary className="body cursor-pointer" style={{ color: 'var(--color-muted-fg)' }}>Imóveis inativos ({imoveisInativos.length})</summary>
-            <div className="mt-4"><ImoveisTable imoveis={imoveisInativos} emptyLabel="—" /></div>
-          </details>
-        )}
-
-        <ChatPanel />
-      </DashboardShell>
-    )
-  }
-
-  // Fluxo normal (sem modo dev)
   if (!user) {
     redirect('/login')
   }
@@ -221,8 +109,6 @@ export default async function DashboardPage() {
     </DashboardShell>
   )
 }
-
-/* Sub-componentes */
 
 function EmptyPartner({ email }: { email: string }) {
   return (

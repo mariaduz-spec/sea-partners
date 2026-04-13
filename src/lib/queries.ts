@@ -130,9 +130,7 @@ FROM comissao
 ORDER BY comissao_12m DESC
 LIMIT 80`
 
-  console.log('[getDashboardImoveis] parceiroId:', parceiroId)
   const rows = await queryNekt<Record<string, string>>(sql)
-  console.log('[getDashboardImoveis] rows:', rows.length)
 
   return rows.map((r) => ({
     indication_id: Number(r.indication_id ?? 0),
@@ -178,9 +176,7 @@ INNER JOIN imoveis i ON CAST(i.property_id AS VARCHAR) = fat.apto_id
 GROUP BY fat.mes_ano, fat.mes_date
 ORDER BY mes_date ASC`
 
-  console.log('[getDashboardEvolucaoMensal] parceiroId:', parceiroId)
   const rows = await queryNekt<Record<string, string>>(sql)
-  console.log('[getDashboardEvolucaoMensal] rows:', rows.length)
 
   const today = new Date()
   return rows.map((r) => {

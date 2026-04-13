@@ -34,7 +34,6 @@ export class NektError extends Error {
  */
 export async function queryNekt<T = Record<string, string>>(sql: string): Promise<T[]> {
   const apiKey = process.env.NEKT_API_KEY
-  console.log('[queryNekt] API key exists:', !!apiKey)
   if (!apiKey) {
     throw new NektError('NEKT_API_KEY ausente no ambiente do server')
   }
@@ -84,7 +83,6 @@ export async function queryNekt<T = Record<string, string>>(sql: string): Promis
     skipEmptyLines: true,
   })
 
-  console.log('[queryNekt] rows returned:', parsed.data.length)
   if (parsed.errors.length > 0) {
     console.warn('[nekt] CSV parse warnings:', parsed.errors.slice(0, 3))
   }
