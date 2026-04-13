@@ -5,6 +5,7 @@ import {
   getDashboardSummary,
   getDashboardImoveis,
   getDashboardEvolucaoMensal,
+  aggregatePaymentStats,
   formatBRL,
   formatBRLCompact,
 } from '@/lib/queries'
@@ -12,8 +13,17 @@ import LogoutButton from './logout-button'
 import RevenueChart from './revenue-chart'
 import ChatPanel from './chat-panel'
 import NewIndicationDialog from './new-indication-dialog'
+import PaymentsHistory from './payments-history'
 import { ThemeToggle } from '@/components/theme-toggle'
-import { TrendingUp, Wallet, Building2, MailQuestion } from 'lucide-react'
+import {
+  TrendingUp,
+  Wallet,
+  Building2,
+  MailQuestion,
+  Clock,
+  CheckCircle2,
+  Hourglass,
+} from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -76,6 +86,7 @@ export default async function DashboardPage() {
   const imoveisInativos = imoveis.filter((i) => i.receita_12m === 0)
   const mediaComissaoMensal =
     summary.meses_distintos > 0 ? summary.comissao_2pct / summary.meses_distintos : 0
+  const pagStats = aggregatePaymentStats(evolucao)
 
   return (
     <DashboardShell email={user.email ?? ''} partnerName={partner.display_name}>
@@ -133,6 +144,71 @@ export default async function DashboardPage() {
           Receita gerada pelos seus imóveis, mês a mês
         </p>
         <RevenueChart data={evolucao} />
+      </div>
+
+      {/* Status de pagamento de comissoes */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <PaymentStatusCard
+          icon={<Clock size={18} />}
+          label="A receber"
+          value={formatBRL(pagStats.total_a_pagar)}
+          sub={
+            pagStats.count_a_pagar > 0
+              ? `${pagStats.count_a_pagar} mês em processamento`
+              : 'sem pagamentos pendentes'
+          }
+          tone="coral"
+        />
+        <PaymentStatusCard
+          icon={<Hourglass size={18} />}
+          label="Em apuração"
+          value={formatBRL(pagStats.total_em_apuracao)}
+          sub={`mês corrente · fecha no último dia`}
+          tone="muted"
+        />
+        <PaymentStatusCard
+          icon={<CheckCircle2 size={18} />}
+          label="Recebido 12m"
+          value={formatBRL(pagStats.total_pago)}
+          sub={`${pagStats.count_pago} ${
+            pagStats.count_pago === 1 ? 'mês pago' : 'meses pagos'
+          }`}
+          tone="success"
+        />
+      </div>
+
+      {/* Historico de pagamentos */}
+      <div
+        className="rounded-xl p-6 mb-6"
+        style={{
+          background: 'var(--color-background)',
+          border: '1px solid var(--color-border)',
+          boxShadow: 'var(--shadow-card)',
+        }}
+      >
+        <div className="flex items-start gap-3 mb-4">
+          <div
+            className="inline-flex items-center justify-center w-10 h-10 rounded-lg shrink-0"
+            style={{
+              background: 'var(--color-coral-light)',
+              color: 'var(--color-coral)',
+            }}
+          >
+            <Wallet size={18} />
+          </div>
+          <div>
+            <h4 style={{ color: 'var(--color-foreground)' }}>
+              Histórico de pagamentos
+            </h4>
+            <p
+              className="detail-reg mt-1"
+              style={{ color: 'var(--color-muted-fg)' }}
+            >
+              Comissão mês a mês · pagamento no dia 10 do mês seguinte ao fechamento
+            </p>
+          </div>
+        </div>
+        <PaymentsHistory meses={evolucao} />
       </div>
 
       <div
@@ -446,5 +522,78 @@ function StatusPill({ status }: { status: string }) {
     >
       {status || '—'}
     </span>
+  )
+}
+
+function PaymentStatusCard({
+  icon,
+  label,
+  value,
+  sub,
+  tone,
+}: {
+  icon: React.ReactNode
+  label: string
+  value: string
+  sub: string
+  tone: 'coral' | 'success' | 'muted'
+}) {
+  const toneStyles = {
+    coral: {
+      iconBg: 'var(--color-coral-light)',
+      iconColor: 'var(--color-coral)',
+      valueColor: 'var(--color-coral)',
+    },
+    success: {
+      iconBg: 'color-mix(in oklab, var(--color-success) 15%, transparent)',
+      iconColor: 'var(--color-success)',
+      valueColor: 'var(--color-success)',
+    },
+    muted: {
+      iconBg: 'var(--color-muted)',
+      iconColor: 'var(--color-muted-fg)',
+      valueColor: 'var(--color-foreground)',
+    },
+  }[tone]
+
+  return (
+    <div
+      className="rounded-xl p-5"
+      style={{
+        background: 'var(--color-background)',
+        border: '1px solid var(--color-border)',
+        boxShadow: 'var(--shadow-card)',
+      }}
+    >
+      <div className="flex items-center gap-2 mb-3">
+        <div
+          className="inline-flex items-center justify-center w-8 h-8 rounded-lg"
+          style={{ background: toneStyles.iconBg, color: toneStyles.iconColor }}
+        >
+          {icon}
+        </div>
+        <p className="body" style={{ color: 'var(--color-muted-fg)' }}>
+          {label}
+        </p>
+      </div>
+      <p
+        style={{
+          color: toneStyles.valueColor,
+          fontSize: 28,
+          fontWeight: 700,
+          lineHeight: 1,
+          letterSpacing: '-0.02em',
+          fontVariantNumeric: 'tabular-nums',
+        }}
+      >
+        {value}
+      </p>
+      <p
+        className="detail-reg mt-2"
+        style={{ color: 'var(--color-muted-fg)' }}
+      >
+        {sub}
+      </p>
+    </div>
   )
 }

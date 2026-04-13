@@ -6,6 +6,7 @@ import {
   getDashboardSummary,
   getDashboardImoveis,
   getDashboardEvolucaoMensal,
+  aggregatePaymentStats,
   formatBRL,
   type DashboardImovel,
   type DashboardMes,
@@ -73,10 +74,11 @@ function buildContexto(
       (m) =>
         `- ${m.mes_ano}: receita ${formatBRL(m.receita_mes)}, comissao ${formatBRL(
           m.comissao_mes
-        )}, ${m.n_imoveis_ativos} imoveis ativos`
+        )}, ${m.n_imoveis_ativos} imoveis ativos, status: ${m.label_status}`
     )
     .join('\n')
 
+  const pag = aggregatePaymentStats(evolucao)
   const media =
     summary.meses_distintos > 0
       ? summary.comissao_2pct / summary.meses_distintos
@@ -92,7 +94,14 @@ function buildContexto(
 - Comissao media mensal: ${formatBRL(Math.round(media))}
 - Meses com dados: ${summary.meses_distintos}
 
-## Evolucao mensal (do mais antigo ao mais recente)
+## Status de pagamento da comissao
+- Ja recebido (meses pagos): ${formatBRL(pag.total_pago)} em ${pag.count_pago} ${pag.count_pago === 1 ? 'mes' : 'meses'}
+- A receber (mes fechado aguardando pagamento): ${formatBRL(pag.total_a_pagar)} em ${pag.count_a_pagar} ${pag.count_a_pagar === 1 ? 'mes' : 'meses'}
+- Em apuracao (mes corrente, ainda rodando): ${formatBRL(pag.total_em_apuracao)}
+
+Regra de pagamento: comissao fecha no ultimo dia do mes e e paga no dia 10 do mes seguinte.
+
+## Evolucao mensal + status (do mais antigo ao mais recente)
 ${evolucaoResumo || 'Sem dados mensais.'}
 
 ## Imoveis com receita (top 20, ordenados por receita 12m)
