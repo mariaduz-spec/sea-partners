@@ -7,23 +7,26 @@ type Props = {
   data: Array<{ mes_ano: string; receita_mes: number; comissao_mes: number }>
 }
 
-export default function RevenueChart({ data }: Props) {
+/**
+ * Grafico de comissao mensal — destaque coral pra enfatizar que eh o ganho
+ * do parceiro (nao a receita, que pertence ao proprietario/Seazone).
+ */
+export default function CommissionChart({ data }: Props) {
   const { resolved } = useTheme()
   const isDark = resolved === 'dark'
 
-  // recharts nao le CSS vars — precisa de hexes resolvidos por theme.
   const gridColor = isDark ? '#1F2858' : '#EBEBF5'
   const axisColor = isDark ? '#8A8EA3' : '#62656F'
-  const barColor = isDark ? '#F56A67' : '#0C1640'
+  const barColor = isDark ? '#F56A67' : '#F1605D'
   const tooltipBg = isDark ? '#141D4A' : '#FFFFFF'
   const tooltipBorder = isDark ? '#2D3769' : '#EBEBF5'
   const tooltipText = isDark ? '#F5F5F7' : '#19191A'
-  const cursorFill = isDark ? 'rgba(245, 106, 103, 0.1)' : '#F9F9F9'
+  const cursorFill = isDark ? 'rgba(245, 106, 103, 0.1)' : 'rgba(241, 96, 93, 0.06)'
 
   const chartData = data.map((d) => ({
     mes: d.mes_ano,
-    receita: d.receita_mes,
     comissao: d.comissao_mes,
+    receita: d.receita_mes,
   }))
 
   return (
@@ -55,14 +58,14 @@ export default function RevenueChart({ data }: Props) {
           }}
           formatter={(value, name) => {
             const n = typeof value === 'number' ? value : Number(value) || 0
-            const label = name === 'receita' ? 'Receita' : 'Comissão'
+            const label = name === 'comissao' ? 'Comissão' : 'Receita do imóvel'
             return [
               `R$ ${n.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
               label,
             ]
           }}
         />
-        <Bar dataKey="receita" fill={barColor} radius={[6, 6, 0, 0]} />
+        <Bar dataKey="comissao" fill={barColor} radius={[6, 6, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   )

@@ -10,19 +10,19 @@ import {
   formatBRLCompact,
 } from '@/lib/queries'
 import LogoutButton from './logout-button'
-import RevenueChart from './revenue-chart'
+import CommissionChart from './commission-chart'
 import ChatPanel from './chat-panel'
 import NewIndicationDialog from './new-indication-dialog'
 import PaymentsHistory from './payments-history'
 import { ThemeToggle } from '@/components/theme-toggle'
 import {
-  TrendingUp,
   Wallet,
   Building2,
   MailQuestion,
   Clock,
   CheckCircle2,
   Hourglass,
+  BadgeDollarSign,
 } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -231,13 +231,13 @@ export default async function DashboardPage() {
           </div>
           <div>
             <h4 style={{ color: 'var(--color-foreground)' }}>
-              Imóveis rendendo receita ({imoveisAtivos.length})
+              Imóveis que geram sua comissão ({imoveisAtivos.length})
             </h4>
             <p
               className="detail-reg mt-1"
               style={{ color: 'var(--color-muted-fg)' }}
             >
-              Ordenados por receita do período · comissão = 2% da receita de reservas
+              Ordenados por comissão gerada no período · 2% sobre a receita de reservas do imóvel
             </p>
           </div>
         </div>
