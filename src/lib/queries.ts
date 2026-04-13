@@ -201,6 +201,57 @@ ORDER BY mes_date ASC`
   })
 }
 
+export type ExtratoImovelNoMes = {
+  mes_ano: string
+  code: string
+  prop_status: string
+  comissao: number
+}
+
+/**
+ * Extrato detalhado: comissao de cada imovel em cada mes (ultimos 12m).
+ * Usado pra expandir cada linha do historico de pagamentos e mostrar
+ * a quebra por imovel daquele mes.
+ */
+export async function getExtratoMensalPorImovel(
+  parceiroId: number
+): Promise<ExtratoImovelNoMes[]> {
+  const sql = `${commonCTEs(parceiroId)}
+SELECT
+  fat.mes_ano,
+  i.code,
+  i.prop_status,
+  ROUND(SUM(fat.receita) * ${COMMISSION_PCT}, 2) AS comissao
+FROM fat
+INNER JOIN ids i ON i.apto_id = fat.apto_id
+WHERE fat.receita IS NOT NULL AND fat.receita > 0
+GROUP BY fat.mes_ano, i.code, i.prop_status, fat.mes_date
+ORDER BY fat.mes_date DESC, comissao DESC`
+
+  const rows = await queryNekt<Record<string, string>>(sql)
+  return rows.map((r) => ({
+    mes_ano: r.mes_ano ?? '',
+    code: r.code ?? '',
+    prop_status: r.prop_status ?? '',
+    comissao: Number(r.comissao ?? 0),
+  }))
+}
+
+/**
+ * Agrupa o extrato por mes_ano pra facilitar render (client).
+ */
+export function groupExtratoByMes(
+  extrato: ExtratoImovelNoMes[]
+): Map<string, Array<{ code: string; prop_status: string; comissao: number }>> {
+  const map = new Map<string, Array<{ code: string; prop_status: string; comissao: number }>>()
+  for (const item of extrato) {
+    const list = map.get(item.mes_ano) ?? []
+    list.push({ code: item.code, prop_status: item.prop_status, comissao: item.comissao })
+    map.set(item.mes_ano, list)
+  }
+  return map
+}
+
 /**
  * Totais agrupados por status de pagamento. Usado nos metric cards de pagamentos.
  */

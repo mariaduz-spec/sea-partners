@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation'
 import { getPartnerForCurrentUser } from '@/lib/partner'
 import {
   getDashboardEvolucaoMensal,
+  getExtratoMensalPorImovel,
+  groupExtratoByMes,
   aggregatePaymentStats,
   formatBRL,
 } from '@/lib/queries'
@@ -31,8 +33,18 @@ export default async function PagamentosPage() {
     )
   }
 
-  const evolucao = await getDashboardEvolucaoMensal(partner.parceiro_id)
+  const [evolucao, extrato] = await Promise.all([
+    getDashboardEvolucaoMensal(partner.parceiro_id),
+    getExtratoMensalPorImovel(partner.parceiro_id),
+  ])
   const pagStats = aggregatePaymentStats(evolucao)
+
+  // Converte Map pra objeto plano pra serializar ao client component
+  const extratoMap = groupExtratoByMes(extrato)
+  const extratoPorMes: Record<string, Array<{ code: string; prop_status: string; comissao: number }>> = {}
+  for (const [mes, list] of extratoMap) {
+    extratoPorMes[mes] = list
+  }
 
   return (
     <DashboardShell
@@ -117,7 +129,7 @@ export default async function PagamentosPage() {
             </p>
           </div>
         </div>
-        <PaymentsHistory meses={evolucao} />
+        <PaymentsHistory meses={evolucao} extratoPorMes={extratoPorMes} />
       </div>
 
       <ChatPanel />

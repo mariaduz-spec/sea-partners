@@ -1,17 +1,22 @@
+'use client'
+
+import { useState } from 'react'
 import { formatBRL, type DashboardMes, type PaymentStatus } from '@/lib/queries'
-import { CheckCircle2, Clock, Hourglass } from 'lucide-react'
+import { CheckCircle2, Clock, Hourglass, ChevronDown, ChevronRight } from 'lucide-react'
+
+type ImovelNoMes = { code: string; prop_status: string; comissao: number }
 
 type Props = {
   meses: DashboardMes[]
+  extratoPorMes: Record<string, ImovelNoMes[]>
 }
 
 /**
- * Historico de pagamentos da comissao — lista todos os meses disponiveis
- * com status (pago / a pagar / em apuracao) e data efetiva ou prevista.
+ * Historico expansivel: cada linha de mes tem um chevron.
+ * Click expande mostrando quais imoveis geraram comissao naquele mes.
  */
-export default function PaymentsHistory({ meses }: Props) {
-  const mesesOrdenados = [...meses].sort((a, b) => b.mes_ano.localeCompare(a.mes_ano, 'pt-BR'))
-  // Ordenacao real por data — usa parse do MM/YYYY
+export default function PaymentsHistory({ meses, extratoPorMes }: Props) {
+  const mesesOrdenados = [...meses]
   mesesOrdenados.sort((a, b) => {
     const [ma, ya] = a.mes_ano.split('/').map(Number)
     const [mb, yb] = b.mes_ano.split('/').map(Number)
@@ -27,61 +32,130 @@ export default function PaymentsHistory({ meses }: Props) {
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full">
-        <thead>
-          <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
-            <th
-              className="eyebrow text-left py-3"
+    <div>
+      {/* Header row */}
+      <div
+        className="grid grid-cols-[auto_1fr_auto_auto_auto] gap-3 sm:gap-4 items-center py-3 eyebrow"
+        style={{
+          borderBottom: '1px solid var(--color-border)',
+          color: 'var(--color-muted-fg)',
+        }}
+      >
+        <span className="w-4" aria-hidden />
+        <span>Mês</span>
+        <span className="text-right">Comissão</span>
+        <span className="text-right hidden sm:inline">Imóveis</span>
+        <span className="pl-2">Status</span>
+      </div>
+
+      {/* Linhas */}
+      <div>
+        {mesesOrdenados.map((m) => (
+          <MesRow
+            key={m.mes_ano}
+            mes={m}
+            imoveis={extratoPorMes[m.mes_ano] ?? []}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function MesRow({ mes, imoveis }: { mes: DashboardMes; imoveis: ImovelNoMes[] }) {
+  const [open, setOpen] = useState(false)
+  const hasImoveis = imoveis.length > 0
+  const ChevronIcon = open ? ChevronDown : ChevronRight
+
+  return (
+    <div style={{ borderBottom: '1px solid var(--color-border)' }}>
+      <button
+        type="button"
+        onClick={() => hasImoveis && setOpen(!open)}
+        disabled={!hasImoveis}
+        aria-expanded={open}
+        className="w-full grid grid-cols-[auto_1fr_auto_auto_auto] gap-3 sm:gap-4 items-center py-3 text-left transition"
+        style={{
+          background: 'transparent',
+          cursor: hasImoveis ? 'pointer' : 'default',
+        }}
+        onMouseEnter={(e) =>
+          hasImoveis && (e.currentTarget.style.background = 'var(--color-muted)')
+        }
+        onMouseLeave={(e) =>
+          (e.currentTarget.style.background = 'transparent')
+        }
+      >
+        <span className="w-4 flex items-center justify-center">
+          {hasImoveis ? (
+            <ChevronIcon
+              size={14}
               style={{ color: 'var(--color-muted-fg)' }}
-            >
-              Mês
-            </th>
-            <th
-              className="eyebrow text-right py-3"
-              style={{ color: 'var(--color-muted-fg)' }}
-            >
-              Sua comissão
-            </th>
-            <th
-              className="eyebrow text-right py-3"
-              style={{ color: 'var(--color-muted-fg)' }}
-            >
-              Imóveis ativos
-            </th>
-            <th
-              className="eyebrow text-left py-3 pl-4"
-              style={{ color: 'var(--color-muted-fg)' }}
-            >
-              Status
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {mesesOrdenados.map((m) => (
-            <tr key={m.mes_ano} style={{ borderBottom: '1px solid var(--color-border)' }}>
-              <td className="body py-3" style={{ color: 'var(--color-foreground)' }}>
-                {m.mes_ano}
-              </td>
-              <td
-                className="body py-3 text-right tabular-nums"
-                style={{ color: 'var(--color-coral)' }}
+            />
+          ) : null}
+        </span>
+        <span className="body" style={{ color: 'var(--color-foreground)' }}>
+          {mes.mes_ano}
+        </span>
+        <span
+          className="body text-right tabular-nums"
+          style={{ color: 'var(--color-coral)' }}
+        >
+          {formatBRL(mes.comissao_mes)}
+        </span>
+        <span
+          className="body-reg text-right tabular-nums hidden sm:inline"
+          style={{ color: 'var(--color-muted-fg)' }}
+        >
+          {mes.n_imoveis_ativos}
+        </span>
+        <span className="pl-2">
+          <StatusPill status={mes.status} label={mes.label_status} />
+        </span>
+      </button>
+
+      {open && hasImoveis && (
+        <div
+          className="pb-3"
+          style={{
+            background:
+              'color-mix(in oklab, var(--color-muted) 60%, transparent)',
+          }}
+        >
+          <div className="px-4 py-2 detail" style={{ color: 'var(--color-muted-fg)' }}>
+            Quebra por imóvel
+          </div>
+          <div>
+            {imoveis.map((i) => (
+              <div
+                key={i.code}
+                className="grid grid-cols-[auto_1fr_auto_auto_auto] gap-3 sm:gap-4 items-center py-2 px-1"
+                style={{
+                  borderTop: '1px solid var(--color-border)',
+                }}
               >
-                {formatBRL(m.comissao_mes)}
-              </td>
-              <td
-                className="body-reg py-3 text-right tabular-nums"
-                style={{ color: 'var(--color-muted-fg)' }}
-              >
-                {m.n_imoveis_ativos}
-              </td>
-              <td className="py-3 pl-4">
-                <StatusPill status={m.status} label={m.label_status} />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                <span className="w-4" aria-hidden />
+                <span
+                  className="body-reg font-mono"
+                  style={{ color: 'var(--color-foreground)', fontSize: 13 }}
+                >
+                  {i.code}
+                </span>
+                <span
+                  className="body-reg text-right tabular-nums"
+                  style={{ color: 'var(--color-foreground)' }}
+                >
+                  {formatBRL(i.comissao)}
+                </span>
+                <span className="hidden sm:inline" aria-hidden />
+                <span className="pl-2">
+                  <PropertyStatusPill status={i.prop_status} />
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -112,6 +186,29 @@ function StatusPill({ status, label }: { status: PaymentStatus; label: string })
     >
       <config.Icon size={12} />
       {label}
+    </span>
+  )
+}
+
+function PropertyStatusPill({ status }: { status: string }) {
+  const isActive = status === 'Active'
+  return (
+    <span
+      className="detail inline-block px-2 py-0.5 rounded-full"
+      style={
+        isActive
+          ? {
+              background:
+                'color-mix(in oklab, var(--color-success) 15%, transparent)',
+              color: 'var(--color-success)',
+            }
+          : {
+              background: 'var(--color-muted)',
+              color: 'var(--color-muted-fg)',
+            }
+      }
+    >
+      {status || '—'}
     </span>
   )
 }
