@@ -1,5 +1,5 @@
 import { streamText, convertToModelMessages, type UIMessage } from 'ai'
-import { createOpenAI } from '@ai-sdk/openai'
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
 import { createSupabaseServerClient } from '@/lib/supabase'
 import { getPartnerForCurrentUser } from '@/lib/partner'
 import {
@@ -15,10 +15,14 @@ import {
 export const maxDuration = 60
 
 /**
- * Client apontando pro LLM Hub da Seazone (LiteLLM gateway, OpenAI-compatible).
- * URL + key configurados via env. Endpoint real: https://hub.seazone.dev/v1/chat/completions
+ * Client apontando pro LLM Hub da Seazone (LiteLLM gateway).
+ *
+ * Usamos @ai-sdk/openai-compatible porque LiteLLM tem quirks no formato
+ * de streaming que nao batem com @ai-sdk/openai oficial (erro
+ * "text-delta for missing text part"). Esse provider tolera.
  */
-const hub = createOpenAI({
+const hub = createOpenAICompatible({
+  name: 'seazone-hub',
   baseURL: process.env.LLM_HUB_BASE_URL ?? 'https://hub.seazone.dev/v1',
   apiKey: process.env.LLM_HUB_API_KEY,
 })
