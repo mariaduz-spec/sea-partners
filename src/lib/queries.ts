@@ -210,8 +210,15 @@ export type WithdrawStats = {
   count_pending: number
 }
 
-/** Saques / retiradas via sapron_public_financial_partner_withdraw_request */
+/**
+ * Saques via sapron_public_financial_partner_withdraw_request.
+ * partner_id na tabela de saques pode ser diferente do mapping.
+ * Mapeamento conhecido: maria.duz@seazone.com.br -> withdraw partner_id = 324
+ */
 export async function getWithdrawals(parceiroId: number): Promise<{ withdrawals: Withdrawal[]; stats: WithdrawStats }> {
+  // Mapeamento de partner_id do mapping para partner_id nos saques
+  const withdrawPartnerId = parceiroId === 17818 ? 324 : parceiroId
+
   const sql = `
 SELECT
   id,
@@ -222,7 +229,7 @@ SELECT
   payment_method,
   cancel_reason
 FROM nekt_trusted.sapron_public_financial_partner_withdraw_request
-WHERE partner_id = ${parceiroId}
+WHERE partner_id = ${withdrawPartnerId}
 ORDER BY date_requested DESC
 LIMIT 50`
 
