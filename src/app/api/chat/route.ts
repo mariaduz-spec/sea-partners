@@ -1,5 +1,5 @@
 import { streamText, convertToModelMessages, type UIMessage } from 'ai'
-import { anthropic } from '@ai-sdk/anthropic'
+import { createOpenAI } from '@ai-sdk/openai'
 import { createSupabaseServerClient } from '@/lib/supabase'
 import { getPartnerForCurrentUser } from '@/lib/partner'
 import {
@@ -12,7 +12,19 @@ import {
   type DashboardSummary,
 } from '@/lib/queries'
 
-export const maxDuration = 60 // Timeout Vercel Hobby
+export const maxDuration = 60
+
+/**
+ * Client apontando pro LLM Hub da Seazone (LiteLLM gateway, OpenAI-compatible).
+ * URL + key configurados via env. Endpoint real: https://hub.seazone.dev/v1/chat/completions
+ */
+const hub = createOpenAI({
+  baseURL: process.env.LLM_HUB_BASE_URL ?? 'https://hub.seazone.dev/v1',
+  apiKey: process.env.LLM_HUB_API_KEY,
+})
+
+// Modelo do hub usado pro assistente. apps-premium = Claude Haiku via Hub (cliente-facing, pt-BR).
+const HUB_MODEL = process.env.LLM_HUB_MODEL ?? 'apps-premium'
 
 const SYSTEM_PROMPT = `Voce e o assistente do Sea Partners, portal self-service da Seazone para parceiros indicadores de imoveis em aluguel por temporada.
 
@@ -127,7 +139,7 @@ export async function POST(req: Request) {
     )
 
     const result = streamText({
-      model: anthropic('claude-sonnet-4-5'),
+      model: hub(HUB_MODEL),
       system: `${SYSTEM_PROMPT}\n\n${contexto}`,
       messages: await convertToModelMessages(messages),
       temperature: 0.4,
