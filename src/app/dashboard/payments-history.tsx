@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { formatBRL, type DashboardMes, type PaymentStatus } from '@/lib/queries'
+import { formatBRL, type DashboardMes, type PaymentStatus } from '@/lib/format'
 import { CheckCircle2, Clock, Hourglass, ChevronDown, ChevronRight } from 'lucide-react'
 
 type ImovelNoMes = { code: string; prop_status: string; comissao: number }

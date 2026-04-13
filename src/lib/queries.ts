@@ -1,5 +1,23 @@
 import 'server-only'
 import { queryNekt } from './nekt'
+import type {
+  DashboardMes,
+  DashboardImovel,
+  DashboardSummary,
+  ExtratoImovelNoMes,
+  PaymentStatus,
+} from './format'
+import { COMMISSION_PCT } from './format'
+
+// Re-export pra compat: consumers podem importar de @/lib/queries OR @/lib/format
+export type {
+  DashboardMes,
+  DashboardImovel,
+  DashboardSummary,
+  ExtratoImovelNoMes,
+  PaymentStatus,
+}
+export { COMMISSION_PCT, formatBRL, formatBRLCompact } from './format'
 
 /**
  * Queries do dashboard — cadeia validada end-to-end com dados reais.
@@ -10,8 +28,6 @@ import { queryNekt } from './nekt'
  *   → receita_reservas (varchar BR, REPLACE triplo + TRY_CAST)
  *   → filtro ultimos 12 meses calendario (try(date_parse) tolera formato DD/MM/YYYY)
  */
-
-export const COMMISSION_PCT = 0.02
 
 /** CTEs comuns reutilizadas em todas as queries. Inseridas via interpolacao de parceiroId. */
 function commonCTEs(parceiroId: number): string {
@@ -39,15 +55,6 @@ fat AS (
 `
 }
 
-export type DashboardSummary = {
-  imoveis_indicados: number
-  imoveis_resolvidos: number
-  imoveis_com_receita: number
-  receita_total_12m: number
-  comissao_2pct: number
-  meses_distintos: number
-}
-
 export async function getDashboardSummary(parceiroId: number): Promise<DashboardSummary> {
   const sql = `${commonCTEs(parceiroId)}
 SELECT
@@ -69,15 +76,6 @@ FROM fat`
     comissao_2pct: Number(r.comissao_2pct ?? 0),
     meses_distintos: Number(r.meses_distintos ?? 0),
   }
-}
-
-export type DashboardImovel = {
-  apto_id: string
-  code: string
-  prop_status: string
-  receita_12m: number
-  comissao_12m: number
-  n_meses: number
 }
 
 export async function getDashboardImoveis(parceiroId: number): Promise<DashboardImovel[]> {
@@ -106,28 +104,9 @@ LIMIT 50`
   }))
 }
 
-export type PaymentStatus = 'pago' | 'a_pagar' | 'em_apuracao'
-
-export type DashboardMes = {
-  mes_ano: string
-  receita_mes: number
-  comissao_mes: number
-  n_imoveis_ativos: number
-  status: PaymentStatus
-  data_pagamento: Date | null       // data efetiva ou prevista
-  label_status: string               // copy amigavel pra UI
-}
-
 /**
  * Classifica um mes_ano ("MM/YYYY") em pago / a_pagar / em_apuracao
  * conforme a data de hoje.
- *
- * Regra:
- * - mesmo MM/YYYY do today → em_apuracao (ainda rodando)
- * - MM-1 (mes fechado mais recente) → a_pagar (aguardando processamento financeiro)
- * - qualquer mes anterior → pago (pagamento historicamente liquidado)
- *
- * Data prevista/efetiva: dia 10 do mes seguinte ao fechamento.
  */
 export function computePaymentStatus(
   mesAno: string,
@@ -140,26 +119,20 @@ export function computePaymentStatus(
   const mm = Number(match[1])
   const yyyy = Number(match[2])
 
-  const todayMonth = today.getUTCMonth() + 1   // 1-12
+  const todayMonth = today.getUTCMonth() + 1
   const todayYear = today.getUTCFullYear()
 
   const isCurrent = mm === todayMonth && yyyy === todayYear
-  // mes anterior (MM-1 do ano corrente OU dez do ano anterior se estivermos em jan)
   const isPrevious =
     (mm === todayMonth - 1 && yyyy === todayYear) ||
     (todayMonth === 1 && mm === 12 && yyyy === todayYear - 1)
 
-  // Data prevista/efetiva de pagamento = dia 10 do mes seguinte ao fechamento
   const nextMonth = mm === 12 ? 1 : mm + 1
   const nextYear = mm === 12 ? yyyy + 1 : yyyy
   const dataPagamento = new Date(Date.UTC(nextYear, nextMonth - 1, 10))
 
   if (isCurrent) {
-    return {
-      status: 'em_apuracao',
-      data_pagamento: null,
-      label_status: 'Em apuração',
-    }
+    return { status: 'em_apuracao', data_pagamento: null, label_status: 'Em apuração' }
   }
   if (isPrevious) {
     return {
@@ -201,17 +174,8 @@ ORDER BY mes_date ASC`
   })
 }
 
-export type ExtratoImovelNoMes = {
-  mes_ano: string
-  code: string
-  prop_status: string
-  comissao: number
-}
-
 /**
  * Extrato detalhado: comissao de cada imovel em cada mes (ultimos 12m).
- * Usado pra expandir cada linha do historico de pagamentos e mostrar
- * a quebra por imovel daquele mes.
  */
 export async function getExtratoMensalPorImovel(
   parceiroId: number
@@ -237,9 +201,6 @@ ORDER BY fat.mes_date DESC, comissao DESC`
   }))
 }
 
-/**
- * Agrupa o extrato por mes_ano pra facilitar render (client).
- */
 export function groupExtratoByMes(
   extrato: ExtratoImovelNoMes[]
 ): Map<string, Array<{ code: string; prop_status: string; comissao: number }>> {
@@ -284,21 +245,4 @@ export function aggregatePaymentStats(meses: DashboardMes[]): {
     }
   }
   return stats
-}
-
-/** Formata BRL: 45969.75 -> "R$ 45.969,75". */
-export function formatBRL(v: number): string {
-  return v.toLocaleString('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-    minimumFractionDigits: 2,
-  })
-}
-
-/** Formata compacto: 2298487 -> "R$ 2,3M". Util pra numero grande no topo. */
-export function formatBRLCompact(v: number): string {
-  const abs = Math.abs(v)
-  if (abs >= 1_000_000) return `R$ ${(v / 1_000_000).toFixed(2).replace('.', ',')}M`
-  if (abs >= 1_000) return `R$ ${(v / 1_000).toFixed(1).replace('.', ',')}k`
-  return formatBRL(v)
 }
