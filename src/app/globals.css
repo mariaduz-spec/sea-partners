@@ -132,3 +132,12 @@ h4, .h4 { font-size: 18px; font-weight: 600; line-height: 1.4; }
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
+
+/* Animacao de slide in do chat panel */
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+.chat-panel-enter {
+  animation: slideInRight 0.2s ease-out;
+}

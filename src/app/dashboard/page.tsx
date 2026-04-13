@@ -10,6 +10,7 @@ import {
 } from '@/lib/queries'
 import LogoutButton from './logout-button'
 import RevenueChart from './revenue-chart'
+import ChatPanel from './chat-panel'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { TrendingUp, Wallet, Building2, MailQuestion } from 'lucide-react'
 
@@ -180,6 +181,9 @@ export default async function DashboardPage() {
           </div>
         </details>
       )}
+
+      {/* Assistente IA — floating button + sheet lateral */}
+      <ChatPanel />
     </DashboardShell>
   )
 }
