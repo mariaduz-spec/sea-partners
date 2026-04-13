@@ -8,19 +8,14 @@ import {
   aggregatePaymentStats,
   formatBRL,
 } from '@/lib/queries'
-import LogoutButton from './logout-button'
 import CommissionChart from './commission-chart'
 import ChatPanel from './chat-panel'
 import NewIndicationDialog from './new-indication-dialog'
-import PaymentsHistory from './payments-history'
-import { ThemeToggle } from '@/components/theme-toggle'
+import DashboardShell from '@/components/dashboard-shell'
 import {
   Wallet,
   Building2,
   MailQuestion,
-  Clock,
-  CheckCircle2,
-  Hourglass,
   BadgeDollarSign,
 } from 'lucide-react'
 
@@ -37,40 +32,12 @@ export default async function DashboardPage() {
 
   if (!partner) {
     return (
-      <DashboardShell email={user.email ?? ''}>
-        <div
-          className="rounded-xl p-12 text-center max-w-lg mx-auto"
-          style={{
-            background: 'var(--color-background)',
-            border: '1px solid var(--color-border)',
-            boxShadow: 'var(--shadow-card)',
-          }}
-        >
-          <div
-            className="inline-flex items-center justify-center w-14 h-14 rounded-full mb-4"
-            style={{
-              background: 'var(--color-coral-light)',
-              color: 'var(--color-coral)',
-            }}
-          >
-            <MailQuestion size={24} />
-          </div>
-          <p className="p-ui" style={{ color: 'var(--color-foreground)' }}>
-            Conta ainda não vinculada
-          </p>
-          <p
-            className="body-reg mt-2"
-            style={{ color: 'var(--color-muted-fg)' }}
-          >
-            Entre em contato com o time comercial da Seazone para liberar seu acesso como parceiro.
-          </p>
-          <p
-            className="detail-reg mt-6 font-mono"
-            style={{ color: 'var(--color-muted-fg)' }}
-          >
-            {user.email}
-          </p>
-        </div>
+      <DashboardShell
+        email={user.email ?? ''}
+        active="visao-geral"
+      >
+        <EmptyPartner email={user.email ?? ''} />
+        <ChatPanel />
       </DashboardShell>
     )
   }
@@ -89,7 +56,11 @@ export default async function DashboardPage() {
   const totalAReceber = pagStats.total_a_pagar + pagStats.total_em_apuracao
 
   return (
-    <DashboardShell email={user.email ?? ''} partnerName={partner.display_name}>
+    <DashboardShell
+      email={user.email ?? ''}
+      partnerName={partner.display_name}
+      active="visao-geral"
+    >
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <span className="eyebrow" style={{ color: 'var(--color-coral)' }}>
@@ -126,7 +97,7 @@ export default async function DashboardPage() {
           sub={
             pagStats.count_a_pagar > 0
               ? `${formatBRL(pagStats.total_a_pagar)} aguardando pagamento · ${formatBRL(pagStats.total_em_apuracao)} em apuração`
-              : `mês corrente em apuração · fecha no último dia`
+              : `ver detalhamento em Pagamentos`
           }
         />
       </div>
@@ -147,71 +118,6 @@ export default async function DashboardPage() {
           Evolução dos seus ganhos ao longo dos últimos 12 meses
         </p>
         <CommissionChart data={evolucao} />
-      </div>
-
-      {/* Status de pagamento de comissoes */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <PaymentStatusCard
-          icon={<Clock size={18} />}
-          label="A receber"
-          value={formatBRL(pagStats.total_a_pagar)}
-          sub={
-            pagStats.count_a_pagar > 0
-              ? `${pagStats.count_a_pagar} mês em processamento`
-              : 'sem pagamentos pendentes'
-          }
-          tone="coral"
-        />
-        <PaymentStatusCard
-          icon={<Hourglass size={18} />}
-          label="Em apuração"
-          value={formatBRL(pagStats.total_em_apuracao)}
-          sub={`mês corrente · fecha no último dia`}
-          tone="muted"
-        />
-        <PaymentStatusCard
-          icon={<CheckCircle2 size={18} />}
-          label="Recebido 12m"
-          value={formatBRL(pagStats.total_pago)}
-          sub={`${pagStats.count_pago} ${
-            pagStats.count_pago === 1 ? 'mês pago' : 'meses pagos'
-          }`}
-          tone="success"
-        />
-      </div>
-
-      {/* Historico de pagamentos */}
-      <div
-        className="rounded-xl p-6 mb-6"
-        style={{
-          background: 'var(--color-background)',
-          border: '1px solid var(--color-border)',
-          boxShadow: 'var(--shadow-card)',
-        }}
-      >
-        <div className="flex items-start gap-3 mb-4">
-          <div
-            className="inline-flex items-center justify-center w-10 h-10 rounded-lg shrink-0"
-            style={{
-              background: 'var(--color-coral-light)',
-              color: 'var(--color-coral)',
-            }}
-          >
-            <Wallet size={18} />
-          </div>
-          <div>
-            <h4 style={{ color: 'var(--color-foreground)' }}>
-              Histórico de pagamentos
-            </h4>
-            <p
-              className="detail-reg mt-1"
-              style={{ color: 'var(--color-muted-fg)' }}
-            >
-              Comissão mês a mês · pagamento no dia 10 do mês seguinte ao fechamento
-            </p>
-          </div>
-        </div>
-        <PaymentsHistory meses={evolucao} />
       </div>
 
       <div
@@ -267,7 +173,6 @@ export default async function DashboardPage() {
         </details>
       )}
 
-      {/* Assistente IA — floating button + sheet lateral */}
       <ChatPanel />
     </DashboardShell>
   )
@@ -275,61 +180,37 @@ export default async function DashboardPage() {
 
 /* ─────────────────────────────────────────── Sub-componentes ─ */
 
-function DashboardShell({
-  email,
-  partnerName,
-  children,
-}: {
-  email: string
-  partnerName?: string
-  children: React.ReactNode
-}) {
+function EmptyPartner({ email }: { email: string }) {
   return (
-    <div className="min-h-screen" style={{ background: 'var(--color-surface)' }}>
-      <header
+    <div
+      className="rounded-xl p-12 text-center max-w-lg mx-auto"
+      style={{
+        background: 'var(--color-background)',
+        border: '1px solid var(--color-border)',
+        boxShadow: 'var(--shadow-card)',
+      }}
+    >
+      <div
+        className="inline-flex items-center justify-center w-14 h-14 rounded-full mb-4"
         style={{
-          background: 'var(--color-header-bg)',
-          color: 'var(--color-header-fg)',
+          background: 'var(--color-coral-light)',
+          color: 'var(--color-coral)',
         }}
       >
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div
-              className="inline-flex items-center justify-center w-9 h-9 rounded-lg shrink-0"
-              style={{
-                background: 'var(--color-coral)',
-                color: 'white',
-              }}
-            >
-              <span className="body" style={{ fontWeight: 700 }}>
-                S
-              </span>
-            </div>
-            <div>
-              <p className="body" style={{ color: 'var(--color-header-fg)' }}>
-                Sea Partners
-              </p>
-              <p
-                className="detail-reg"
-                style={{ color: 'var(--color-header-muted)' }}
-              >
-                {partnerName ?? 'Portal do parceiro'}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span
-              className="detail-reg hidden sm:inline"
-              style={{ color: 'var(--color-header-muted)' }}
-            >
-              {email}
-            </span>
-            <ThemeToggle />
-            <LogoutButton />
-          </div>
-        </div>
-      </header>
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">{children}</main>
+        <MailQuestion size={24} />
+      </div>
+      <p className="p-ui" style={{ color: 'var(--color-foreground)' }}>
+        Conta ainda não vinculada
+      </p>
+      <p className="body-reg mt-2" style={{ color: 'var(--color-muted-fg)' }}>
+        Entre em contato com o time comercial da Seazone para liberar seu acesso como parceiro.
+      </p>
+      <p
+        className="detail-reg mt-6 font-mono"
+        style={{ color: 'var(--color-muted-fg)' }}
+      >
+        {email}
+      </p>
     </div>
   )
 }
@@ -368,9 +249,7 @@ function MetricCard({
         <div
           className="inline-flex items-center justify-center w-8 h-8 rounded-lg"
           style={{
-            background: accent
-              ? 'rgba(255, 255, 255, 0.2)'
-              : 'var(--color-navy)',
+            background: accent ? 'rgba(255, 255, 255, 0.2)' : 'var(--color-navy)',
             color: 'white',
           }}
         >
@@ -509,78 +388,5 @@ function StatusPill({ status }: { status: string }) {
     >
       {status || '—'}
     </span>
-  )
-}
-
-function PaymentStatusCard({
-  icon,
-  label,
-  value,
-  sub,
-  tone,
-}: {
-  icon: React.ReactNode
-  label: string
-  value: string
-  sub: string
-  tone: 'coral' | 'success' | 'muted'
-}) {
-  const toneStyles = {
-    coral: {
-      iconBg: 'var(--color-coral-light)',
-      iconColor: 'var(--color-coral)',
-      valueColor: 'var(--color-coral)',
-    },
-    success: {
-      iconBg: 'color-mix(in oklab, var(--color-success) 15%, transparent)',
-      iconColor: 'var(--color-success)',
-      valueColor: 'var(--color-success)',
-    },
-    muted: {
-      iconBg: 'var(--color-muted)',
-      iconColor: 'var(--color-muted-fg)',
-      valueColor: 'var(--color-foreground)',
-    },
-  }[tone]
-
-  return (
-    <div
-      className="rounded-xl p-5"
-      style={{
-        background: 'var(--color-background)',
-        border: '1px solid var(--color-border)',
-        boxShadow: 'var(--shadow-card)',
-      }}
-    >
-      <div className="flex items-center gap-2 mb-3">
-        <div
-          className="inline-flex items-center justify-center w-8 h-8 rounded-lg"
-          style={{ background: toneStyles.iconBg, color: toneStyles.iconColor }}
-        >
-          {icon}
-        </div>
-        <p className="body" style={{ color: 'var(--color-muted-fg)' }}>
-          {label}
-        </p>
-      </div>
-      <p
-        style={{
-          color: toneStyles.valueColor,
-          fontSize: 28,
-          fontWeight: 700,
-          lineHeight: 1,
-          letterSpacing: '-0.02em',
-          fontVariantNumeric: 'tabular-nums',
-        }}
-      >
-        {value}
-      </p>
-      <p
-        className="detail-reg mt-2"
-        style={{ color: 'var(--color-muted-fg)' }}
-      >
-        {sub}
-      </p>
-    </div>
   )
 }
