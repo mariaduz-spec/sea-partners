@@ -3,9 +3,8 @@ import { redirect } from 'next/navigation'
 import { getPartnerForCurrentUser } from '@/lib/partner'
 import {
   getDashboardSummary,
-  getPagamentosParceiro,
   getDashboardImoveis,
-  aggregatePagamentosPorMes,
+  getDashboardEvolucaoMensal,
   formatBRL,
   formatBRLCompact,
 } from '@/lib/queries'
@@ -18,6 +17,7 @@ import {
   Building2,
   MailQuestion,
   BadgeDollarSign,
+  TrendingUp,
 } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -40,15 +40,18 @@ export default async function DashboardPage() {
     )
   }
 
-  const [summary, pagamentos, imoveis] = await Promise.all([
+  const [summary, imoveis, evolucao] = await Promise.all([
     getDashboardSummary(partner.parceiro_id),
-    getPagamentosParceiro(partner.parceiro_id),
     getDashboardImoveis(partner.parceiro_id),
+    getDashboardEvolucaoMensal(partner.parceiro_id),
   ])
 
-  const evolucao = aggregatePagamentosPorMes(pagamentos)
   const imoveisAtivos = imoveis.filter((i) => i.prop_status === 'Active')
   const imoveisInativos = imoveis.filter((i) => i.prop_status !== 'Active')
+
+  // Próximos pagamentos (a_pagar + em_apuracao)
+  const proximos = evolucao.filter((m) => m.status === 'a_pagar' || m.status === 'em_apuracao')
+  const totalProximo = proximos.reduce((sum, m) => sum + m.comissao_mes, 0)
 
   return (
     <DashboardShell
@@ -68,7 +71,7 @@ export default async function DashboardPage() {
             className="body-reg mt-1"
             style={{ color: 'var(--color-muted-fg)' }}
           >
-            Suas indicações e os valores que você recebeu pela Seazone.
+            Suas indicações e a receita que você gera.
           </p>
         </div>
         <div className="shrink-0 mt-1">
@@ -76,24 +79,65 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* HERO */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      {/* HERO - 3 métricas principais */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <MetricCard
           icon={<BadgeDollarSign size={20} />}
-          label="Total recebido"
-          value={formatBRLCompact(summary.total_recebido)}
-          sub={`${summary.total_com_pagamento} pagamento${summary.total_com_pagamento === 1 ? '' : 's'} · ticket médio ${formatBRL(summary.ticket_medio)}`}
+          label="Comissão 12m"
+          value={formatBRLCompact(summary.comissao_12m_estimada)}
+          sub={`${summary.meses_com_receita} meses com receita`}
           accent
         />
         <MetricCard
+          icon={<TrendingUp size={20} />}
+          label="Média mensal"
+          value={formatBRLCompact(summary.media_comissao_mensal)}
+          sub="média por mês ativo"
+        />
+        <MetricCard
           icon={<Wallet size={20} />}
-          label="Suas indicações"
+          label="Indicações"
           value={String(summary.total_indicacoes)}
-          sub={`${imoveisAtivos.length} ativos · ${imoveisInativos.length} inativos`}
+          sub={`${summary.indicacoes_won} ganha${summary.indicacoes_won === 1 ? '' : 's'} · ${summary.indicacoes_in_progress} em curso`}
         />
       </div>
 
-      {/* Grafico */}
+      {/* Próximos pagamentos */}
+      {totalProximo > 0 && (
+        <div
+          className="rounded-xl p-4 mb-6"
+          style={{
+            background: 'var(--color-background)',
+            border: '1px solid var(--color-border)',
+            boxShadow: 'var(--shadow-card)',
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p
+                className="body"
+                style={{ color: 'var(--color-foreground)' }}
+              >
+                Próximos pagamentos
+              </p>
+              <p
+                className="detail-reg mt-1"
+                style={{ color: 'var(--color-muted-fg)' }}
+              >
+                {proximos.length} mês{proximos.length === 1 ? '' : 'es'} pendente{proximos.length === 1 ? '' : 's'}
+              </p>
+            </div>
+            <p
+              className="metric"
+              style={{ color: 'var(--color-coral)' }}
+            >
+              {formatBRL(totalProximo)}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Gráfico */}
       <div
         className="rounded-xl p-6 mb-6"
         style={{
@@ -102,17 +146,17 @@ export default async function DashboardPage() {
           boxShadow: 'var(--shadow-card)',
         }}
       >
-        <h4 style={{ color: 'var(--color-foreground)' }}>Pagamentos por mês</h4>
+        <h4 style={{ color: 'var(--color-foreground)' }}>Evolução mensal</h4>
         <p
           className="detail-reg mt-1 mb-4"
           style={{ color: 'var(--color-muted-fg)' }}
         >
-          Evolução dos valores recebidos por mês de fechamento do deal
+          Receita dos imóveis indicados nos últimos 12 meses
         </p>
         <CommissionChart data={evolucao} />
       </div>
 
-      {/* Imoveis indicados */}
+      {/* Imóveis indicados */}
       <div
         className="rounded-xl p-6 mb-6"
         style={{
@@ -133,19 +177,19 @@ export default async function DashboardPage() {
           </div>
           <div>
             <h4 style={{ color: 'var(--color-foreground)' }}>
-              Seus imóveis indicados ({imoveisAtivos.length} ativos)
+              Seus imóveis ({imoveis.length} indicações)
             </h4>
             <p
               className="detail-reg mt-1"
               style={{ color: 'var(--color-muted-fg)' }}
             >
-              Status da operação e valor de indicação que você recebeu por cada um
+              Tipo de comissão e receita gerada em cada um
             </p>
           </div>
         </div>
         <ImoveisTable
           imoveis={imoveisAtivos}
-          emptyLabel="Nenhum imóvel ativo indicado."
+          emptyLabel="Nenhum imóvel ativo."
         />
       </div>
 
@@ -161,7 +205,7 @@ export default async function DashboardPage() {
             className="body cursor-pointer select-none"
             style={{ color: 'var(--color-muted-fg)' }}
           >
-            Imóveis inativos ou descontinuados ({imoveisInativos.length})
+            Imóveis inativos ({imoveisInativos.length})
           </summary>
           <div className="mt-4">
             <ImoveisTable imoveis={imoveisInativos} emptyLabel="—" />
@@ -278,10 +322,13 @@ function ImoveisTable({
   emptyLabel,
 }: {
   imoveis: Array<{
-    apto_id: string
+    indication_id: number
+    property_id: number
     code: string
     prop_status: string
-    taxa_de_adesao: number
+    commission_payment_type: string
+    commission_display: string
+    comissao_12m: number
     n_meses_ativos: number
   }>
   emptyLabel: string
@@ -314,23 +361,29 @@ function ImoveisTable({
               Status
             </th>
             <th
-              className="eyebrow text-right py-3"
+              className="eyebrow text-left py-3"
               style={{ color: 'var(--color-muted-fg)' }}
             >
-              Taxa recebida
+              Comissão
             </th>
             <th
               className="eyebrow text-right py-3"
               style={{ color: 'var(--color-muted-fg)' }}
             >
-              Meses ativos
+              12m
+            </th>
+            <th
+              className="eyebrow text-right py-3"
+              style={{ color: 'var(--color-muted-fg)' }}
+            >
+              Meses
             </th>
           </tr>
         </thead>
         <tbody>
           {imoveis.map((i) => (
             <tr
-              key={i.apto_id}
+              key={i.indication_id}
               style={{ borderBottom: '1px solid var(--color-border)' }}
             >
               <td
@@ -343,19 +396,18 @@ function ImoveisTable({
                 <StatusPill status={i.prop_status} />
               </td>
               <td
+                className="body py-3"
+                style={{ color: 'var(--color-muted-fg)' }}
+              >
+                {i.commission_display}
+              </td>
+              <td
                 className="body py-3 text-right tabular-nums"
                 style={{
-                  color:
-                    i.taxa_de_adesao > 0
-                      ? 'var(--color-coral)'
-                      : 'var(--color-muted-fg)',
+                  color: i.comissao_12m > 0 ? 'var(--color-coral)' : 'var(--color-muted-fg)',
                 }}
               >
-                {i.taxa_de_adesao > 0 ? (
-                  formatBRL(i.taxa_de_adesao)
-                ) : (
-                  <span>—</span>
-                )}
+                {i.comissao_12m > 0 ? formatBRL(i.comissao_12m) : '—'}
               </td>
               <td
                 className="body-reg py-3 text-right tabular-nums"
@@ -379,8 +431,7 @@ function StatusPill({ status }: { status: string }) {
       style={
         isActive
           ? {
-              background:
-                'color-mix(in oklab, var(--color-success) 18%, transparent)',
+              background: 'color-mix(in oklab, var(--color-success) 18%, transparent)',
               color: 'var(--color-success)',
             }
           : {

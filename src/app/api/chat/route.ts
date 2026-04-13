@@ -4,14 +4,15 @@ import { createSupabaseServerClient } from '@/lib/supabase'
 import { getPartnerForCurrentUser } from '@/lib/partner'
 import {
   getDashboardSummary,
-  getPagamentosParceiro,
   getDashboardImoveis,
-  aggregatePagamentosPorMes,
+  getDashboardEvolucaoMensal,
+  getExtratoMensalPorImovel,
+  aggregatePaymentStats,
   formatBRL,
-  type PagamentoParceiro,
-  type DashboardImovel,
+  formatBRLCompact,
   type DashboardSummary,
-  type PagamentosPorMes,
+  type DashboardImovel,
+  type DashboardMes,
 } from '@/lib/queries'
 
 export const maxDuration = 60
@@ -31,62 +32,68 @@ const SYSTEM_PROMPT = `Voce e o assistente do Sea Partners, portal self-service 
 1. **Lingua**: portugues brasileiro. Tom proximo e profissional.
 2. **Nao invente numeros**: use APENAS os dados abaixo. Se perguntarem sobre algo fora desses dados, diga que nao esta disponivel.
 3. **Formato**: valores sempre em R$ 1.234,56 (ponto de milhar, virgula decimal).
-4. **Conciso**: parceiros sao ocupados. Listas e negritos ajudam, headings nao.
-5. **Nao exponha**: IDs internos, CODIGOS de imovel brutos, SQL, Nekt, Supabase. Fale como produto de negocio.
-6. **Modelo de pagamento real**: o parceiro recebe **uma taxa de adesao one-shot** quando um imovel que ele indicou fecha contrato com a Seazone. Pode ser valor fixo (ex: R$ 200, R$ 499, R$ 999) ou zero (deals sem taxa). A forma de pagamento geralmente eh 'A Vista' ou 'Entrada + abatimento'.
-7. **Quando pedirem 'resumo'**: gere 3-4 bullets cobrindo (a) total recebido no periodo, (b) numero de indicacoes, (c) destaques (melhor mes, maior pagamento), (d) 1 sugestao se fizer sentido.
+4. **Conciso**: parceiros sao ocupados. Listas e bullets ajudam.
+5. **Nao exponha**: IDs internos, CODIGOS brutos, SQL, Nekt, Supabase. Fale como produto de negocio.
+6. **Modelo de pagamento real**:
+   - **Recorrente (Recurring)**: 2% sobre a receita mensal do imovel. O parceiro recebe todo mes enquanto o imovel gerar receita.
+   - **Unico (Single)**: valor fixo pago uma vez (one-shot) quando o imovel fecha contrato.
+7. **Quando pedirem 'resumo'**: gere 3-4 bullets cobrindo (a) comissao total 12m, (b) numero de indicacoes, (c) melhores geradores de receita, (d) 1 sugestao se fizer sentido.
 
 # Contextualizacoes uteis
 
-- "Imoveis ativos" = im\u00f3veis em operacao na Seazone (status Active)
-- "Indicacoes" = deals won do parceiro no Pipedrive. Podem ou nao ter taxa de adesao.
-- "Ticket medio" = valor medio por indicacao paga (ignorando as sem taxa).
+- "Imoveis ativos" = imoveis em operacao na Seazone (status Active)
+- "Indicacoes Won" = imoveis que o parceiro indicou e que fecharam contrato
+- "Receita" = valor mensal que o imovel gerou (nao e o que o parceiro recebe)
+- "Comissao" = 2% da receita (se Recurring) ou valorfixo (se Single)
 `
 
 function buildContexto(
   displayName: string,
   summary: DashboardSummary,
-  pagamentos: PagamentoParceiro[],
   imoveis: DashboardImovel[],
-  evolucao: PagamentosPorMes[]
+  evolucao: DashboardMes[]
 ): string {
-  const pagamentosPagos = pagamentos.filter((p) => p.taxa_de_adesao > 0)
-  const ultimosPagamentos = pagamentosPagos.slice(0, 10).map((p) =>
-    `- ${p.close_date_display} · ${p.title || 'sem titulo'} (${p.codigo_do_imovel_unidade}): ${formatBRL(p.taxa_de_adesao)} · ${p.forma_pagamento}`
-  ).join('\n')
-
-  const melhorMes = evolucao.length > 0
-    ? evolucao.reduce((best, cur) => (cur.total_recebido > best.total_recebido ? cur : best))
-    : null
-
+  const stats = aggregatePaymentStats(evolucao)
   const imoveisAtivos = imoveis.filter((i) => i.prop_status === 'Active')
+  const imoveisRecurring = imoveis.filter((i) => i.commission_payment_type === 'Recurring')
+  const imoveisSingle = imoveis.filter((i) => i.commission_payment_type === 'Single')
+
+  // Top 5 por comissao
+  const top5 = [...imoveis]
+    .sort((a, b) => b.comissao_12m - a.comissao_12m)
+    .slice(0, 5)
+    .map((i) => `- ${i.code}: ${formatBRL(i.comissao_12m)} (${i.commission_display})`)
+    .join('\n')
+
+  // Recent evolution
+  const recent = evolucao.slice(-6).map((m) =>
+    `- ${m.mes_ano}: ${formatBRL(m.comissao_mes)} (${m.label_status})`
+  ).join('\n')
 
   return `# Dados do parceiro ${displayName}
 
 ## Resumo
-- Indicacoes totais (deals won): ${summary.total_indicacoes}
-- Indicacoes com taxa paga: ${summary.total_com_pagamento}
-- Total recebido: ${formatBRL(summary.total_recebido)}
-- Ticket medio (por indicacao paga): ${formatBRL(summary.ticket_medio)}
-${summary.primeiro_pagamento ? `- Primeiro pagamento: ${summary.primeiro_pagamento.toLocaleDateString('pt-BR')}` : ''}
-${summary.ultimo_pagamento ? `- Ultimo pagamento: ${summary.ultimo_pagamento.toLocaleDateString('pt-BR')}` : ''}
+- Indicacoes totais: ${summary.total_indicacoes}
+- Won: ${summary.indicacoes_won} | Lost: ${summary.indicacoes_lost} | Em curso: ${summary.indicacoes_in_progress}
+- Imoveis ativos: ${summary.imoveis_ativos}
+- Comissao 12m estimada: ${formatBRL(summary.comissao_12m_estimada)}
+- Media mensal: ${formatBRL(summary.media_comissao_mensal)} (${summary.meses_com_receita} meses com receita)
 
-## Imoveis em operacao
-- Ativos: ${imoveisAtivos.length}
-- Outros: ${imoveis.length - imoveisAtivos.length}
+## Status pagamentos
+- Pago: ${formatBRL(stats.total_pago)} (${stats.count_pago} meses)
+- A pagar: ${formatBRL(stats.total_a_pagar)} (${stats.count_a_pagar} meses)
+- Em apuracao: ${formatBRL(stats.total_em_apuracao)} (${stats.count_em_apuracao} meses)
 
-## Melhor mes
-${melhorMes ? `${melhorMes.mes_ano}: ${formatBRL(melhorMes.total_recebido)} em ${melhorMes.count_com_pagamento} pagamento(s)` : 'Sem dados mensais.'}
+## Imoveis por tipo
+- Recorrente: ${imoveisRecurring.length}
+- Unico: ${imoveisSingle.length}
+- Inativos: ${imoveisAtivos.length === 0 ? imoveis.length : imoveis.length - imoveisAtivos.length}
 
-## Evolucao mensal (do mais antigo ao mais recente)
-${evolucao.length > 0
-  ? evolucao.map((m) =>
-      `- ${m.mes_ano}: ${formatBRL(m.total_recebido)} em ${m.total_indicacoes} indicacao(oes) (${m.count_com_pagamento} pagas)`
-    ).join('\n')
-  : 'Sem dados.'}
+## Top 5 geradores (12m)
+${top5 || 'Sem dados.'}
 
-## Ultimos 10 pagamentos
-${ultimosPagamentos || 'Sem pagamentos registrados.'}
+## Evolucao recente (ultimos 6 meses)
+${recent || 'Sem dados.'}
 `
 }
 
@@ -113,17 +120,15 @@ export async function POST(req: Request) {
       )
     }
 
-    const [summary, pagamentos, imoveis] = await Promise.all([
+    const [summary, imoveis, evolucao] = await Promise.all([
       getDashboardSummary(partner.parceiro_id),
-      getPagamentosParceiro(partner.parceiro_id),
       getDashboardImoveis(partner.parceiro_id),
+      getDashboardEvolucaoMensal(partner.parceiro_id),
     ])
 
-    const evolucao = aggregatePagamentosPorMes(pagamentos)
     const contexto = buildContexto(
       partner.display_name,
       summary,
-      pagamentos,
       imoveis,
       evolucao
     )
