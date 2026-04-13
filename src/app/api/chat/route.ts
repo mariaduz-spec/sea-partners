@@ -4,109 +4,89 @@ import { createSupabaseServerClient } from '@/lib/supabase'
 import { getPartnerForCurrentUser } from '@/lib/partner'
 import {
   getDashboardSummary,
+  getPagamentosParceiro,
   getDashboardImoveis,
-  getDashboardEvolucaoMensal,
-  aggregatePaymentStats,
+  aggregatePagamentosPorMes,
   formatBRL,
+  type PagamentoParceiro,
   type DashboardImovel,
-  type DashboardMes,
   type DashboardSummary,
+  type PagamentosPorMes,
 } from '@/lib/queries'
 
 export const maxDuration = 60
 
-/**
- * Client apontando pro LLM Hub da Seazone (LiteLLM gateway).
- *
- * Usamos @ai-sdk/openai-compatible porque LiteLLM tem quirks no formato
- * de streaming que nao batem com @ai-sdk/openai oficial (erro
- * "text-delta for missing text part"). Esse provider tolera.
- */
 const hub = createOpenAICompatible({
   name: 'seazone-hub',
   baseURL: process.env.LLM_HUB_BASE_URL ?? 'https://hub.seazone.dev/v1',
   apiKey: process.env.LLM_HUB_API_KEY,
 })
 
-// Modelo do hub usado pro assistente. apps-premium = Claude Haiku via Hub (cliente-facing, pt-BR).
-const HUB_MODEL = process.env.LLM_HUB_MODEL ?? 'apps-premium'
+const HUB_MODEL = process.env.LLM_HUB_MODEL ?? 'claude-haiku'
 
 const SYSTEM_PROMPT = `Voce e o assistente do Sea Partners, portal self-service da Seazone para parceiros indicadores de imoveis em aluguel por temporada.
 
-# Regras obrigatorias
+# Regras
 
-1. **Lingua**: responda sempre em portugues brasileiro. Tom proximo mas profissional.
-2. **Nao invente numeros**: use APENAS os dados fornecidos abaixo. Se a pergunta for sobre algo fora desses dados (outro parceiro, periodo anterior a 12 meses, etc.), diga claramente que essa informacao nao esta disponivel.
-3. **Formato de valores**: sempre em reais brasileiros (R$ 1.234,56 — ponto de milhar, virgula decimal).
-4. **Tom**: conciso, direto. Parceiros sao ocupados. Evite paragrafos longos e floreios.
-5. **Markdown**: use negrito e listas quando ajudar clareza. Nao use headings (#). Respostas curtas sao melhores.
-6. **Quando pedirem "resumo semanal"** ou similar: gere 3-4 bullets cobrindo (a) total do mes mais recente, (b) comparacao com mes anterior ou media, (c) destaques de imoveis ou padrao relevante, (d) 1 sugestao de acao se fizer sentido.
-7. **Jamais mencione IDs internos, CODIGOS de imovel ou parceiro, SQL, Nekt, Supabase, etc.** Fale como produto de negocio, nao como sistema tecnico.
-8. **Regra de comissao**: 2% sobre a receita de reservas (receita do hospede pro imovel). Essa e a regra padrao do modelo revenue share do Sea Partners nesse MVP.
-9. **Foque em COMISSAO, nao em receita**: o parceiro quer saber quanto ELE ganha, nao quanto os imoveis rendem. Evite mencionar valores brutos de receita nos imoveis. Se perguntarem sobre "quanto o imovel X rendeu", converta pra comissao: "voce ganhou R$ X desse imovel". Nunca exponha o valor total de receita bruta — esse numero eh do proprietario e da Seazone, nao do parceiro.
+1. **Lingua**: portugues brasileiro. Tom proximo e profissional.
+2. **Nao invente numeros**: use APENAS os dados abaixo. Se perguntarem sobre algo fora desses dados, diga que nao esta disponivel.
+3. **Formato**: valores sempre em R$ 1.234,56 (ponto de milhar, virgula decimal).
+4. **Conciso**: parceiros sao ocupados. Listas e negritos ajudam, headings nao.
+5. **Nao exponha**: IDs internos, CODIGOS de imovel brutos, SQL, Nekt, Supabase. Fale como produto de negocio.
+6. **Modelo de pagamento real**: o parceiro recebe **uma taxa de adesao one-shot** quando um imovel que ele indicou fecha contrato com a Seazone. Pode ser valor fixo (ex: R$ 200, R$ 499, R$ 999) ou zero (deals sem taxa). A forma de pagamento geralmente eh 'A Vista' ou 'Entrada + abatimento'.
+7. **Quando pedirem 'resumo'**: gere 3-4 bullets cobrindo (a) total recebido no periodo, (b) numero de indicacoes, (c) destaques (melhor mes, maior pagamento), (d) 1 sugestao se fizer sentido.
 
-# Proatividade
+# Contextualizacoes uteis
 
-Se o parceiro fizer uma pergunta aberta (ex: "como esta meu mes?"), voce pode proativamente:
-- Destacar se houve tendencia de alta/queda
-- Apontar o imovel de maior e menor desempenho
-- Sugerir olhar para um imovel especifico se algo parece fora do padrao
+- "Imoveis ativos" = im\u00f3veis em operacao na Seazone (status Active)
+- "Indicacoes" = deals won do parceiro no Pipedrive. Podem ou nao ter taxa de adesao.
+- "Ticket medio" = valor medio por indicacao paga (ignorando as sem taxa).
 `
 
 function buildContexto(
   displayName: string,
   summary: DashboardSummary,
+  pagamentos: PagamentoParceiro[],
   imoveis: DashboardImovel[],
-  evolucao: DashboardMes[]
+  evolucao: PagamentosPorMes[]
 ): string {
-  const imoveisAtivos = imoveis.filter((i) => i.receita_12m > 0)
-  const imoveisResumo = imoveisAtivos
-    .slice(0, 20)
-    .map(
-      (i) =>
-        `- ${i.code} (${i.prop_status}): receita 12m ${formatBRL(
-          i.receita_12m
-        )}, comissao ${formatBRL(i.comissao_12m)}, ${i.n_meses} meses ativos`
-    )
-    .join('\n')
+  const pagamentosPagos = pagamentos.filter((p) => p.taxa_de_adesao > 0)
+  const ultimosPagamentos = pagamentosPagos.slice(0, 10).map((p) =>
+    `- ${p.close_date_display} · ${p.title || 'sem titulo'} (${p.codigo_do_imovel_unidade}): ${formatBRL(p.taxa_de_adesao)} · ${p.forma_pagamento}`
+  ).join('\n')
 
-  const evolucaoResumo = evolucao
-    .map(
-      (m) =>
-        `- ${m.mes_ano}: receita ${formatBRL(m.receita_mes)}, comissao ${formatBRL(
-          m.comissao_mes
-        )}, ${m.n_imoveis_ativos} imoveis ativos, status: ${m.label_status}`
-    )
-    .join('\n')
+  const melhorMes = evolucao.length > 0
+    ? evolucao.reduce((best, cur) => (cur.total_recebido > best.total_recebido ? cur : best))
+    : null
 
-  const pag = aggregatePaymentStats(evolucao)
-  const media =
-    summary.meses_distintos > 0
-      ? summary.comissao_2pct / summary.meses_distintos
-      : 0
+  const imoveisAtivos = imoveis.filter((i) => i.prop_status === 'Active')
 
-  return `# Dados do parceiro ${displayName} (ultimos 12 meses)
+  return `# Dados do parceiro ${displayName}
 
 ## Resumo
-- Imoveis indicados no total: ${summary.imoveis_indicados}
-- Imoveis rendendo receita: ${summary.imoveis_com_receita}
-- Receita total dos imoveis: ${formatBRL(summary.receita_total_12m)}
-- Comissao do parceiro (2%): ${formatBRL(summary.comissao_2pct)}
-- Comissao media mensal: ${formatBRL(Math.round(media))}
-- Meses com dados: ${summary.meses_distintos}
+- Indicacoes totais (deals won): ${summary.total_indicacoes}
+- Indicacoes com taxa paga: ${summary.total_com_pagamento}
+- Total recebido: ${formatBRL(summary.total_recebido)}
+- Ticket medio (por indicacao paga): ${formatBRL(summary.ticket_medio)}
+${summary.primeiro_pagamento ? `- Primeiro pagamento: ${summary.primeiro_pagamento.toLocaleDateString('pt-BR')}` : ''}
+${summary.ultimo_pagamento ? `- Ultimo pagamento: ${summary.ultimo_pagamento.toLocaleDateString('pt-BR')}` : ''}
 
-## Status de pagamento da comissao
-- Ja recebido (meses pagos): ${formatBRL(pag.total_pago)} em ${pag.count_pago} ${pag.count_pago === 1 ? 'mes' : 'meses'}
-- A receber (mes fechado aguardando pagamento): ${formatBRL(pag.total_a_pagar)} em ${pag.count_a_pagar} ${pag.count_a_pagar === 1 ? 'mes' : 'meses'}
-- Em apuracao (mes corrente, ainda rodando): ${formatBRL(pag.total_em_apuracao)}
+## Imoveis em operacao
+- Ativos: ${imoveisAtivos.length}
+- Outros: ${imoveis.length - imoveisAtivos.length}
 
-Regra de pagamento: comissao fecha no ultimo dia do mes e e paga no dia 10 do mes seguinte.
+## Melhor mes
+${melhorMes ? `${melhorMes.mes_ano}: ${formatBRL(melhorMes.total_recebido)} em ${melhorMes.count_com_pagamento} pagamento(s)` : 'Sem dados mensais.'}
 
-## Evolucao mensal + status (do mais antigo ao mais recente)
-${evolucaoResumo || 'Sem dados mensais.'}
+## Evolucao mensal (do mais antigo ao mais recente)
+${evolucao.length > 0
+  ? evolucao.map((m) =>
+      `- ${m.mes_ano}: ${formatBRL(m.total_recebido)} em ${m.total_indicacoes} indicacao(oes) (${m.count_com_pagamento} pagas)`
+    ).join('\n')
+  : 'Sem dados.'}
 
-## Imoveis com receita (top 20, ordenados por receita 12m)
-${imoveisResumo || 'Sem imoveis com receita no periodo.'}
+## Ultimos 10 pagamentos
+${ultimosPagamentos || 'Sem pagamentos registrados.'}
 `
 }
 
@@ -114,7 +94,6 @@ export async function POST(req: Request) {
   try {
     const { messages }: { messages: UIMessage[] } = await req.json()
 
-    // Auth
     const supabase = await createSupabaseServerClient()
     const {
       data: { user },
@@ -126,28 +105,25 @@ export async function POST(req: Request) {
       })
     }
 
-    // Partner lookup
     const partner = await getPartnerForCurrentUser()
     if (!partner) {
       return new Response(
         JSON.stringify({ error: 'No partner mapping for this user' }),
-        {
-          status: 403,
-          headers: { 'content-type': 'application/json' },
-        }
+        { status: 403, headers: { 'content-type': 'application/json' } }
       )
     }
 
-    // Carrega contexto (3 queries em paralelo, ~1-3s)
-    const [summary, imoveis, evolucao] = await Promise.all([
+    const [summary, pagamentos, imoveis] = await Promise.all([
       getDashboardSummary(partner.parceiro_id),
+      getPagamentosParceiro(partner.parceiro_id),
       getDashboardImoveis(partner.parceiro_id),
-      getDashboardEvolucaoMensal(partner.parceiro_id),
     ])
 
+    const evolucao = aggregatePagamentosPorMes(pagamentos)
     const contexto = buildContexto(
       partner.display_name,
       summary,
+      pagamentos,
       imoveis,
       evolucao
     )
@@ -162,8 +138,7 @@ export async function POST(req: Request) {
     return result.toUIMessageStreamResponse()
   } catch (err) {
     console.error('[api/chat] error:', err)
-    const message =
-      err instanceof Error ? err.message : 'unknown server error'
+    const message = err instanceof Error ? err.message : 'unknown server error'
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { 'content-type': 'application/json' },

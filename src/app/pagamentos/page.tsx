@@ -2,16 +2,14 @@ import { createSupabaseServerClient } from '@/lib/supabase'
 import { redirect } from 'next/navigation'
 import { getPartnerForCurrentUser } from '@/lib/partner'
 import {
-  getDashboardEvolucaoMensal,
-  getExtratoMensalPorImovel,
-  groupExtratoByMes,
-  aggregatePaymentStats,
+  getDashboardSummary,
+  getPagamentosParceiro,
   formatBRL,
 } from '@/lib/queries'
 import ChatPanel from '@/app/dashboard/chat-panel'
 import PaymentsHistory from '@/app/dashboard/payments-history'
 import DashboardShell from '@/components/dashboard-shell'
-import { Wallet, Clock, CheckCircle2, Hourglass, MailQuestion } from 'lucide-react'
+import { Wallet, MailQuestion, Coins, Receipt } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,18 +31,12 @@ export default async function PagamentosPage() {
     )
   }
 
-  const [evolucao, extrato] = await Promise.all([
-    getDashboardEvolucaoMensal(partner.parceiro_id),
-    getExtratoMensalPorImovel(partner.parceiro_id),
+  const [summary, pagamentos] = await Promise.all([
+    getDashboardSummary(partner.parceiro_id),
+    getPagamentosParceiro(partner.parceiro_id),
   ])
-  const pagStats = aggregatePaymentStats(evolucao)
 
-  // Converte Map pra objeto plano pra serializar ao client component
-  const extratoMap = groupExtratoByMes(extrato)
-  const extratoPorMes: Record<string, Array<{ code: string; prop_status: string; comissao: number }>> = {}
-  for (const [mes, list] of extratoMap) {
-    extratoPorMes[mes] = list
-  }
+  const pagamentosComTaxa = pagamentos.filter((p) => p.taxa_de_adesao > 0)
 
   return (
     <DashboardShell
@@ -57,48 +49,42 @@ export default async function PagamentosPage() {
           Pagamentos
         </span>
         <h3 className="mt-1" style={{ color: 'var(--color-foreground)' }}>
-          Sua comissão mês a mês
+          Histórico de indicações pagas
         </h3>
         <p
           className="body-reg mt-1"
           style={{ color: 'var(--color-muted-fg)' }}
         >
-          Pagamento feito no dia 10 do mês seguinte ao fechamento da comissão.
+          Valor recebido por cada indicação que você fez e virou contrato com a Seazone.
         </p>
       </div>
 
-      {/* 3 status cards */}
+      {/* 3 metric cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <PaymentStatusCard
-          icon={<Clock size={18} />}
-          label="A receber"
-          value={formatBRL(pagStats.total_a_pagar)}
-          sub={
-            pagStats.count_a_pagar > 0
-              ? `${pagStats.count_a_pagar} mês em processamento`
-              : 'sem pagamentos pendentes'
-          }
+        <MetricCard
+          icon={<Coins size={18} />}
+          label="Total recebido"
+          value={formatBRL(summary.total_recebido)}
+          sub={`${summary.total_com_pagamento} pagamento${summary.total_com_pagamento === 1 ? '' : 's'}`}
           tone="coral"
         />
-        <PaymentStatusCard
-          icon={<Hourglass size={18} />}
-          label="Em apuração"
-          value={formatBRL(pagStats.total_em_apuracao)}
-          sub={`mês corrente · fecha no último dia`}
+        <MetricCard
+          icon={<Receipt size={18} />}
+          label="Ticket médio"
+          value={summary.ticket_medio > 0 ? formatBRL(summary.ticket_medio) : '—'}
+          sub={`por indicação paga`}
           tone="muted"
         />
-        <PaymentStatusCard
-          icon={<CheckCircle2 size={18} />}
-          label="Recebido 12m"
-          value={formatBRL(pagStats.total_pago)}
-          sub={`${pagStats.count_pago} ${
-            pagStats.count_pago === 1 ? 'mês pago' : 'meses pagos'
-          }`}
+        <MetricCard
+          icon={<Wallet size={18} />}
+          label="Indicações totais"
+          value={String(summary.total_indicacoes)}
+          sub={`${summary.total_com_pagamento} com taxa · ${summary.total_indicacoes - summary.total_com_pagamento} sem taxa`}
           tone="success"
         />
       </div>
 
-      {/* Historico detalhado */}
+      {/* Historico */}
       <div
         className="rounded-xl p-6"
         style={{
@@ -119,25 +105,23 @@ export default async function PagamentosPage() {
           </div>
           <div>
             <h4 style={{ color: 'var(--color-foreground)' }}>
-              Histórico de pagamentos
+              Todas as indicações pagas
             </h4>
             <p
               className="detail-reg mt-1"
               style={{ color: 'var(--color-muted-fg)' }}
             >
-              Todos os meses dos últimos 12 com valor e status
+              {pagamentosComTaxa.length} de {pagamentos.length} indicações geraram pagamento · click pra ver detalhes do deal
             </p>
           </div>
         </div>
-        <PaymentsHistory meses={evolucao} extratoPorMes={extratoPorMes} />
+        <PaymentsHistory pagamentos={pagamentos} />
       </div>
 
       <ChatPanel />
     </DashboardShell>
   )
 }
-
-/* ─────────────────────────────────────────── Sub-componentes ─ */
 
 function EmptyPartner({ email }: { email: string }) {
   return (
@@ -174,7 +158,7 @@ function EmptyPartner({ email }: { email: string }) {
   )
 }
 
-function PaymentStatusCard({
+function MetricCard({
   icon,
   label,
   value,
@@ -196,7 +180,7 @@ function PaymentStatusCard({
     success: {
       iconBg: 'color-mix(in oklab, var(--color-success) 15%, transparent)',
       iconColor: 'var(--color-success)',
-      valueColor: 'var(--color-success)',
+      valueColor: 'var(--color-foreground)',
     },
     muted: {
       iconBg: 'var(--color-muted)',

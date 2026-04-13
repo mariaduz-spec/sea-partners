@@ -3,10 +3,11 @@ import { redirect } from 'next/navigation'
 import { getPartnerForCurrentUser } from '@/lib/partner'
 import {
   getDashboardSummary,
+  getPagamentosParceiro,
   getDashboardImoveis,
-  getDashboardEvolucaoMensal,
-  aggregatePaymentStats,
+  aggregatePagamentosPorMes,
   formatBRL,
+  formatBRLCompact,
 } from '@/lib/queries'
 import CommissionChart from './commission-chart'
 import ChatPanel from './chat-panel'
@@ -32,28 +33,22 @@ export default async function DashboardPage() {
 
   if (!partner) {
     return (
-      <DashboardShell
-        email={user.email ?? ''}
-        active="visao-geral"
-      >
+      <DashboardShell email={user.email ?? ''} active="visao-geral">
         <EmptyPartner email={user.email ?? ''} />
         <ChatPanel />
       </DashboardShell>
     )
   }
 
-  const [summary, imoveis, evolucao] = await Promise.all([
+  const [summary, pagamentos, imoveis] = await Promise.all([
     getDashboardSummary(partner.parceiro_id),
+    getPagamentosParceiro(partner.parceiro_id),
     getDashboardImoveis(partner.parceiro_id),
-    getDashboardEvolucaoMensal(partner.parceiro_id),
   ])
 
-  const imoveisAtivos = imoveis.filter((i) => i.receita_12m > 0)
-  const imoveisInativos = imoveis.filter((i) => i.receita_12m === 0)
-  const mediaComissaoMensal =
-    summary.meses_distintos > 0 ? summary.comissao_2pct / summary.meses_distintos : 0
-  const pagStats = aggregatePaymentStats(evolucao)
-  const totalAReceber = pagStats.total_a_pagar + pagStats.total_em_apuracao
+  const evolucao = aggregatePagamentosPorMes(pagamentos)
+  const imoveisAtivos = imoveis.filter((i) => i.prop_status === 'Active')
+  const imoveisInativos = imoveis.filter((i) => i.prop_status !== 'Active')
 
   return (
     <DashboardShell
@@ -73,7 +68,7 @@ export default async function DashboardPage() {
             className="body-reg mt-1"
             style={{ color: 'var(--color-muted-fg)' }}
           >
-            Sua comissão dos imóveis que você indicou nos últimos 12 meses.
+            Suas indicações e os valores que você recebeu pela Seazone.
           </p>
         </div>
         <div className="shrink-0 mt-1">
@@ -81,27 +76,24 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* HERO: comissao do parceiro */}
+      {/* HERO */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <MetricCard
           icon={<BadgeDollarSign size={20} />}
-          label="Sua comissão · últimos 12 meses"
-          value={formatBRL(summary.comissao_2pct)}
-          sub={`média de ${formatBRL(Math.round(mediaComissaoMensal))}/mês · ${summary.imoveis_com_receita} imóveis ativos de ${summary.imoveis_indicados} indicados`}
+          label="Total recebido"
+          value={formatBRLCompact(summary.total_recebido)}
+          sub={`${summary.total_com_pagamento} pagamento${summary.total_com_pagamento === 1 ? '' : 's'} · ticket médio ${formatBRL(summary.ticket_medio)}`}
           accent
         />
         <MetricCard
           icon={<Wallet size={20} />}
-          label="Total a receber"
-          value={formatBRL(totalAReceber)}
-          sub={
-            pagStats.count_a_pagar > 0
-              ? `${formatBRL(pagStats.total_a_pagar)} aguardando pagamento · ${formatBRL(pagStats.total_em_apuracao)} em apuração`
-              : `ver detalhamento em Pagamentos`
-          }
+          label="Suas indicações"
+          value={String(summary.total_indicacoes)}
+          sub={`${imoveisAtivos.length} ativos · ${imoveisInativos.length} inativos`}
         />
       </div>
 
+      {/* Grafico */}
       <div
         className="rounded-xl p-6 mb-6"
         style={{
@@ -110,16 +102,17 @@ export default async function DashboardPage() {
           boxShadow: 'var(--shadow-card)',
         }}
       >
-        <h4 style={{ color: 'var(--color-foreground)' }}>Sua comissão mês a mês</h4>
+        <h4 style={{ color: 'var(--color-foreground)' }}>Pagamentos por mês</h4>
         <p
           className="detail-reg mt-1 mb-4"
           style={{ color: 'var(--color-muted-fg)' }}
         >
-          Evolução dos seus ganhos ao longo dos últimos 12 meses
+          Evolução dos valores recebidos por mês de fechamento do deal
         </p>
         <CommissionChart data={evolucao} />
       </div>
 
+      {/* Imoveis indicados */}
       <div
         className="rounded-xl p-6 mb-6"
         style={{
@@ -140,17 +133,20 @@ export default async function DashboardPage() {
           </div>
           <div>
             <h4 style={{ color: 'var(--color-foreground)' }}>
-              Imóveis que geram sua comissão ({imoveisAtivos.length})
+              Seus imóveis indicados ({imoveisAtivos.length} ativos)
             </h4>
             <p
               className="detail-reg mt-1"
               style={{ color: 'var(--color-muted-fg)' }}
             >
-              Ordenados por comissão gerada no período
+              Status da operação e valor de indicação que você recebeu por cada um
             </p>
           </div>
         </div>
-        <ImoveisTable imoveis={imoveisAtivos} emptyLabel="Nenhum imóvel com comissão no período." />
+        <ImoveisTable
+          imoveis={imoveisAtivos}
+          emptyLabel="Nenhum imóvel ativo indicado."
+        />
       </div>
 
       {imoveisInativos.length > 0 && (
@@ -165,7 +161,7 @@ export default async function DashboardPage() {
             className="body cursor-pointer select-none"
             style={{ color: 'var(--color-muted-fg)' }}
           >
-            Imóveis sem comissão nos últimos 12 meses ({imoveisInativos.length})
+            Imóveis inativos ou descontinuados ({imoveisInativos.length})
           </summary>
           <div className="mt-4">
             <ImoveisTable imoveis={imoveisInativos} emptyLabel="—" />
@@ -285,9 +281,8 @@ function ImoveisTable({
     apto_id: string
     code: string
     prop_status: string
-    receita_12m: number
-    comissao_12m: number
-    n_meses: number
+    taxa_de_adesao: number
+    n_meses_ativos: number
   }>
   emptyLabel: string
 }) {
@@ -322,7 +317,7 @@ function ImoveisTable({
               className="eyebrow text-right py-3"
               style={{ color: 'var(--color-muted-fg)' }}
             >
-              Sua comissão (12m)
+              Taxa recebida
             </th>
             <th
               className="eyebrow text-right py-3"
@@ -334,7 +329,10 @@ function ImoveisTable({
         </thead>
         <tbody>
           {imoveis.map((i) => (
-            <tr key={i.apto_id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+            <tr
+              key={i.apto_id}
+              style={{ borderBottom: '1px solid var(--color-border)' }}
+            >
               <td
                 className="body py-3 font-mono"
                 style={{ color: 'var(--color-foreground)' }}
@@ -346,19 +344,24 @@ function ImoveisTable({
               </td>
               <td
                 className="body py-3 text-right tabular-nums"
-                style={{ color: 'var(--color-coral)' }}
+                style={{
+                  color:
+                    i.taxa_de_adesao > 0
+                      ? 'var(--color-coral)'
+                      : 'var(--color-muted-fg)',
+                }}
               >
-                {i.comissao_12m > 0 ? (
-                  formatBRL(i.comissao_12m)
+                {i.taxa_de_adesao > 0 ? (
+                  formatBRL(i.taxa_de_adesao)
                 ) : (
-                  <span style={{ color: 'var(--color-muted-fg)' }}>—</span>
+                  <span>—</span>
                 )}
               </td>
               <td
                 className="body-reg py-3 text-right tabular-nums"
                 style={{ color: 'var(--color-muted-fg)' }}
               >
-                {i.n_meses}
+                {i.n_meses_ativos}
               </td>
             </tr>
           ))}

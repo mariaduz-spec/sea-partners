@@ -1,70 +1,56 @@
 'use client'
 
 import { useState } from 'react'
-import { formatBRL, type DashboardMes, type PaymentStatus } from '@/lib/format'
-import { CheckCircle2, Clock, Hourglass, ChevronDown, ChevronRight } from 'lucide-react'
-
-type ImovelNoMes = { code: string; prop_status: string; comissao: number }
+import { formatBRL, type PagamentoParceiro } from '@/lib/format'
+import { ChevronDown, ChevronRight, MapPin, CreditCard, FileText } from 'lucide-react'
 
 type Props = {
-  meses: DashboardMes[]
-  extratoPorMes: Record<string, ImovelNoMes[]>
+  pagamentos: PagamentoParceiro[]
 }
 
 /**
- * Historico expansivel: cada linha de mes tem um chevron.
- * Click expande mostrando quais imoveis geraram comissao naquele mes.
+ * Historico de pagamentos (deals won com taxa_de_adesao) ordenados por data desc.
+ * Cada linha expansivel pra mostrar detalhes do deal.
  */
-export default function PaymentsHistory({ meses, extratoPorMes }: Props) {
-  const mesesOrdenados = [...meses]
-  mesesOrdenados.sort((a, b) => {
-    const [ma, ya] = a.mes_ano.split('/').map(Number)
-    const [mb, yb] = b.mes_ano.split('/').map(Number)
-    return yb - ya || mb - ma
-  })
-
-  if (meses.length === 0) {
+export default function PaymentsHistory({ pagamentos }: Props) {
+  if (pagamentos.length === 0) {
     return (
       <p className="body-reg text-center py-8" style={{ color: 'var(--color-muted-fg)' }}>
-        Sem histórico disponível ainda.
+        Sem pagamentos registrados ainda.
       </p>
     )
   }
 
   return (
     <div>
-      {/* Header row */}
+      {/* Header */}
       <div
-        className="grid grid-cols-[auto_1fr_auto_auto_auto] gap-3 sm:gap-4 items-center py-3 eyebrow"
+        className="grid grid-cols-[auto_1fr_auto_auto] gap-3 sm:gap-4 items-center py-3 eyebrow"
         style={{
           borderBottom: '1px solid var(--color-border)',
           color: 'var(--color-muted-fg)',
         }}
       >
         <span className="w-4" aria-hidden />
-        <span>Mês</span>
-        <span className="text-right">Comissão</span>
-        <span className="text-right hidden sm:inline">Imóveis</span>
-        <span className="pl-2">Status</span>
+        <span>Indicação</span>
+        <span className="text-right">Valor</span>
+        <span className="text-right pr-1">Data</span>
       </div>
 
       {/* Linhas */}
       <div>
-        {mesesOrdenados.map((m) => (
-          <MesRow
-            key={m.mes_ano}
-            mes={m}
-            imoveis={extratoPorMes[m.mes_ano] ?? []}
-          />
+        {pagamentos.map((p) => (
+          <PagamentoRow key={p.deal_id} pagamento={p} />
         ))}
       </div>
     </div>
   )
 }
 
-function MesRow({ mes, imoveis }: { mes: DashboardMes; imoveis: ImovelNoMes[] }) {
+function PagamentoRow({ pagamento }: { pagamento: PagamentoParceiro }) {
   const [open, setOpen] = useState(false)
   const ChevronIcon = open ? ChevronDown : ChevronRight
+  const temPagamento = pagamento.taxa_de_adesao > 0
 
   return (
     <div style={{ borderBottom: '1px solid var(--color-border)' }}>
@@ -72,7 +58,7 @@ function MesRow({ mes, imoveis }: { mes: DashboardMes; imoveis: ImovelNoMes[] })
         type="button"
         onClick={() => setOpen(!open)}
         aria-expanded={open}
-        className="w-full grid grid-cols-[auto_1fr_auto_auto_auto] gap-3 sm:gap-4 items-center py-3 text-left transition cursor-pointer"
+        className="w-full grid grid-cols-[auto_1fr_auto_auto] gap-3 sm:gap-4 items-center py-3 text-left transition cursor-pointer"
         style={{ background: 'transparent' }}
         onMouseEnter={(e) =>
           (e.currentTarget.style.background = 'var(--color-muted)')
@@ -82,72 +68,73 @@ function MesRow({ mes, imoveis }: { mes: DashboardMes; imoveis: ImovelNoMes[] })
         }
       >
         <span className="w-4 flex items-center justify-center">
-          <ChevronIcon
-            size={14}
-            style={{ color: 'var(--color-muted-fg)' }}
-          />
+          <ChevronIcon size={14} style={{ color: 'var(--color-muted-fg)' }} />
         </span>
-        <span className="body" style={{ color: 'var(--color-foreground)' }}>
-          {mes.mes_ano}
-        </span>
+        <div className="min-w-0">
+          <p
+            className="body truncate"
+            style={{ color: 'var(--color-foreground)' }}
+          >
+            {pagamento.title || '—'}
+          </p>
+          {pagamento.codigo_do_imovel_unidade && (
+            <p
+              className="detail-reg font-mono truncate"
+              style={{ color: 'var(--color-muted-fg)' }}
+            >
+              {pagamento.codigo_do_imovel_unidade}
+              {pagamento.cidade && ` · ${pagamento.cidade}`}
+            </p>
+          )}
+        </div>
         <span
           className="body text-right tabular-nums"
-          style={{ color: 'var(--color-coral)' }}
+          style={{
+            color: temPagamento ? 'var(--color-coral)' : 'var(--color-muted-fg)',
+          }}
         >
-          {formatBRL(mes.comissao_mes)}
+          {temPagamento ? formatBRL(pagamento.taxa_de_adesao) : 'Sem taxa'}
         </span>
         <span
-          className="body-reg text-right tabular-nums hidden sm:inline"
+          className="detail-reg text-right pr-1"
           style={{ color: 'var(--color-muted-fg)' }}
         >
-          {mes.n_imoveis_ativos}
-        </span>
-        <span className="pl-2">
-          <StatusPill status={mes.status} label={mes.label_status} />
+          {pagamento.close_date_display}
         </span>
       </button>
 
       {open && (
         <div
-          className="pb-3"
+          className="pb-4 pt-2 px-4 space-y-2"
           style={{
-            background:
-              'color-mix(in oklab, var(--color-muted) 60%, transparent)',
+            background: 'color-mix(in oklab, var(--color-muted) 60%, transparent)',
           }}
         >
-          <div className="px-4 py-2 detail" style={{ color: 'var(--color-muted-fg)' }}>
-            {imoveis.length > 0
-              ? `Quebra por imóvel (${imoveis.length})`
-              : 'Sem detalhamento por imóvel disponível neste mês.'}
-          </div>
-          {imoveis.length > 0 && (
-            <div>
-              {imoveis.map((i) => (
-                <div
-                  key={i.code}
-                  className="grid grid-cols-[auto_1fr_auto_auto_auto] gap-3 sm:gap-4 items-center py-2 px-1"
-                  style={{ borderTop: '1px solid var(--color-border)' }}
-                >
-                  <span className="w-4" aria-hidden />
-                  <span
-                    className="body-reg font-mono"
-                    style={{ color: 'var(--color-foreground)', fontSize: 13 }}
-                  >
-                    {i.code}
-                  </span>
-                  <span
-                    className="body-reg text-right tabular-nums"
-                    style={{ color: 'var(--color-foreground)' }}
-                  >
-                    {formatBRL(i.comissao)}
-                  </span>
-                  <span className="hidden sm:inline" aria-hidden />
-                  <span className="pl-2">
-                    <PropertyStatusPill status={i.prop_status} />
-                  </span>
-                </div>
-              ))}
-            </div>
+          <DetailRow
+            icon={<FileText size={14} />}
+            label="ID do deal"
+            value={String(pagamento.deal_id)}
+          />
+          {pagamento.endereco_do_imovel && (
+            <DetailRow
+              icon={<MapPin size={14} />}
+              label="Endereço"
+              value={pagamento.endereco_do_imovel}
+            />
+          )}
+          {pagamento.forma_pagamento && (
+            <DetailRow
+              icon={<CreditCard size={14} />}
+              label="Forma de pagamento"
+              value={pagamento.forma_pagamento}
+            />
+          )}
+          {pagamento.valor_contrato > 0 && (
+            <DetailRow
+              icon={<FileText size={14} />}
+              label="Valor do contrato (ref. imóvel)"
+              value={formatBRL(pagamento.valor_contrato)}
+            />
           )}
         </div>
       )}
@@ -155,55 +142,38 @@ function MesRow({ mes, imoveis }: { mes: DashboardMes; imoveis: ImovelNoMes[] })
   )
 }
 
-function StatusPill({ status, label }: { status: PaymentStatus; label: string }) {
-  const config = {
-    pago: {
-      bg: 'color-mix(in oklab, var(--color-success) 15%, transparent)',
-      color: 'var(--color-success)',
-      Icon: CheckCircle2,
-    },
-    a_pagar: {
-      bg: 'var(--color-coral-light)',
-      color: 'var(--color-coral)',
-      Icon: Clock,
-    },
-    em_apuracao: {
-      bg: 'var(--color-muted)',
-      color: 'var(--color-muted-fg)',
-      Icon: Hourglass,
-    },
-  }[status]
-
+function DetailRow({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode
+  label: string
+  value: string
+}) {
   return (
-    <span
-      className="detail inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full"
-      style={{ background: config.bg, color: config.color }}
-    >
-      <config.Icon size={12} />
-      {label}
-    </span>
-  )
-}
-
-function PropertyStatusPill({ status }: { status: string }) {
-  const isActive = status === 'Active'
-  return (
-    <span
-      className="detail inline-block px-2 py-0.5 rounded-full"
-      style={
-        isActive
-          ? {
-              background:
-                'color-mix(in oklab, var(--color-success) 15%, transparent)',
-              color: 'var(--color-success)',
-            }
-          : {
-              background: 'var(--color-muted)',
-              color: 'var(--color-muted-fg)',
-            }
-      }
-    >
-      {status || '—'}
-    </span>
+    <div className="flex items-center gap-2">
+      <span
+        className="inline-flex items-center justify-center w-6 h-6 rounded"
+        style={{
+          background: 'var(--color-muted)',
+          color: 'var(--color-muted-fg)',
+        }}
+      >
+        {icon}
+      </span>
+      <span
+        className="detail"
+        style={{ color: 'var(--color-muted-fg)', minWidth: 140 }}
+      >
+        {label}
+      </span>
+      <span
+        className="body-reg truncate"
+        style={{ color: 'var(--color-foreground)' }}
+      >
+        {value}
+      </span>
+    </div>
   )
 }

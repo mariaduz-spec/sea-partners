@@ -4,12 +4,11 @@ import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGri
 import { useTheme } from '@/lib/theme-provider'
 
 type Props = {
-  data: Array<{ mes_ano: string; comissao_mes: number }>
+  data: Array<{ mes_ano: string; total_recebido: number; total_indicacoes: number }>
 }
 
 /**
- * Grafico de comissao mensal — destaque coral pra enfatizar que eh o ganho
- * do parceiro (nao a receita, que pertence ao proprietario/Seazone).
+ * Grafico de pagamentos recebidos por mes (taxa de adesao por mes de fechamento).
  */
 export default function CommissionChart({ data }: Props) {
   const { resolved } = useTheme()
@@ -25,7 +24,8 @@ export default function CommissionChart({ data }: Props) {
 
   const chartData = data.map((d) => ({
     mes: d.mes_ano,
-    comissao: d.comissao_mes,
+    recebido: d.total_recebido,
+    indicacoes: d.total_indicacoes,
   }))
 
   return (
@@ -39,9 +39,9 @@ export default function CommissionChart({ data }: Props) {
           tickLine={false}
         />
         <YAxis
-          tickFormatter={(v) => `R$${Math.round(v / 1000)}k`}
+          tickFormatter={(v) => `R$${Math.round(v)}`}
           tick={{ fontSize: 11, fill: axisColor }}
-          width={60}
+          width={70}
           axisLine={false}
           tickLine={false}
         />
@@ -55,15 +55,17 @@ export default function CommissionChart({ data }: Props) {
             fontSize: 12,
             fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif',
           }}
-          formatter={(value) => {
+          formatter={(value, name) => {
             const n = typeof value === 'number' ? value : Number(value) || 0
-            return [
-              `R$ ${n.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
-              'Sua comissão',
-            ]
+            const label = name === 'recebido' ? 'Recebido' : 'Indicações'
+            const display =
+              name === 'recebido'
+                ? `R$ ${n.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                : String(n)
+            return [display, label]
           }}
         />
-        <Bar dataKey="comissao" fill={barColor} radius={[6, 6, 0, 0]} />
+        <Bar dataKey="recebido" fill={barColor} radius={[6, 6, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   )
