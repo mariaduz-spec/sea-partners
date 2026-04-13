@@ -22,34 +22,31 @@ const DEV_PARTNER_ID = parseInt(process.env.DEV_PARTNER_ID ?? '0')
 const USE_DEV = process.env.NODE_ENV === 'development' && DEV_PARTNER_ID > 0
 
 export default async function PagamentosPage() {
-  let partner = null
+  let partnerId = 0
   let userEmail = ''
+  let displayName = ''
 
   if (USE_DEV) {
-    partner = {
-      email: 'dev@seazone.com.br',
-      partenaire_id: 0,
-      display_name: 'Dev (Katia Emmel)',
-    }
-    userEmail = USE_DEV ? 'dev@seazone.com.br' : (user?.email ?? '')
+    partnerId = DEV_PARTNER_ID
+    userEmail = 'dev@seazone.com.br'
+    displayName = 'Dev (Katia Emmel)'
   } else {
     const supabase = await createSupabaseServerClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) redirect('/login')
     userEmail = user.email ?? ''
-    partner = await getPartnerForCurrentUser()
+    const partner = await getPartnerForCurrentUser()
+    if (!partner) {
+      return (
+        <DashboardShell email={userEmail} active="pagamentos">
+          <EmptyPartner email={userEmail} />
+          <ChatPanel />
+        </DashboardShell>
+      )
+    }
+    partnerId = partner.parceiro_id
+    displayName = partner.display_name
   }
-
-  if (!partner) {
-    return (
-      <DashboardShell email={userEmail} active="pagamentos">
-        <EmptyPartner email={userEmail} />
-        <ChatPanel />
-      </DashboardShell>
-    )
-  }
-
-  const partnerId = USE_DEV ? DEV_PARTNER_ID : partner.parceiro_id
 
   const [summary, evolucao, extrato] = await Promise.all([
     getDashboardSummary(partnerId),
@@ -66,7 +63,7 @@ export default async function PagamentosPage() {
     .slice(0, 6)
 
   return (
-    <DashboardShell email={userEmail} partnerName={partner.display_name} active="pagamentos">
+    <DashboardShell email={userEmail} partnerName={displayName} active="pagamentos">
       <div className="mb-6">
         <span className="eyebrow" style={{ color: 'var(--color-coral)' }}>Pagamentos</span>
         <h3 className="mt-1" style={{ color: 'var(--color-foreground)' }}>Receita por imóvel</h3>
