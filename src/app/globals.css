@@ -141,3 +141,29 @@ h4, .h4 { font-size: 18px; font-weight: 600; line-height: 1.4; }
 .chat-panel-enter {
   animation: slideInRight 0.2s ease-out;
 }
+
+/* Input estilo Bluezone — pra forms */
+.input-bluezone {
+  width: 100%;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  padding: 10px 12px;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.input-bluezone::placeholder {
+  color: var(--color-muted-fg);
+}
+.input-bluezone:focus {
+  outline: none;
+  border-color: var(--color-coral);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-coral) 20%, transparent);
+}
+.input-bluezone:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

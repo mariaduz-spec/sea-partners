@@ -11,6 +11,7 @@ import {
 import LogoutButton from './logout-button'
 import RevenueChart from './revenue-chart'
 import ChatPanel from './chat-panel'
+import NewIndicationDialog from './new-indication-dialog'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { TrendingUp, Wallet, Building2, MailQuestion } from 'lucide-react'
 
@@ -78,19 +79,24 @@ export default async function DashboardPage() {
 
   return (
     <DashboardShell email={user.email ?? ''} partnerName={partner.display_name}>
-      <div className="mb-6">
-        <span className="eyebrow" style={{ color: 'var(--color-coral)' }}>
-          Olá 👋
-        </span>
-        <h3 className="mt-1" style={{ color: 'var(--color-foreground)' }}>
-          {partner.display_name}
-        </h3>
-        <p
-          className="body-reg mt-1"
-          style={{ color: 'var(--color-muted-fg)' }}
-        >
-          Desempenho dos imóveis que você indicou nos últimos 12 meses.
-        </p>
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <span className="eyebrow" style={{ color: 'var(--color-coral)' }}>
+            Olá 👋
+          </span>
+          <h3 className="mt-1" style={{ color: 'var(--color-foreground)' }}>
+            {partner.display_name}
+          </h3>
+          <p
+            className="body-reg mt-1"
+            style={{ color: 'var(--color-muted-fg)' }}
+          >
+            Desempenho dos imóveis que você indicou nos últimos 12 meses.
+          </p>
+        </div>
+        <div className="shrink-0 mt-1">
+          <NewIndicationDialog />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
