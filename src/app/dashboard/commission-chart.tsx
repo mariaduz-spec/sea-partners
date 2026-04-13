@@ -4,7 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGri
 import { useTheme } from '@/lib/theme-provider'
 
 type Props = {
-  data: Array<{ mes_ano: string; receita_mes: number; comissao_mes: number }>
+  data: Array<{ mes_ano: string; comissao_mes: number }>
 }
 
 /**
@@ -26,7 +26,6 @@ export default function CommissionChart({ data }: Props) {
   const chartData = data.map((d) => ({
     mes: d.mes_ano,
     comissao: d.comissao_mes,
-    receita: d.receita_mes,
   }))
 
   return (
@@ -56,12 +55,11 @@ export default function CommissionChart({ data }: Props) {
             fontSize: 12,
             fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif',
           }}
-          formatter={(value, name) => {
+          formatter={(value) => {
             const n = typeof value === 'number' ? value : Number(value) || 0
-            const label = name === 'comissao' ? 'Comissão' : 'Receita do imóvel'
             return [
               `R$ ${n.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
-              label,
+              'Sua comissão',
             ]
           }}
         />

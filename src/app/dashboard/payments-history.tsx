@@ -41,13 +41,13 @@ export default function PaymentsHistory({ meses }: Props) {
               className="eyebrow text-right py-3"
               style={{ color: 'var(--color-muted-fg)' }}
             >
-              Receita do mês
+              Sua comissão
             </th>
             <th
               className="eyebrow text-right py-3"
               style={{ color: 'var(--color-muted-fg)' }}
             >
-              Comissão (2%)
+              Imóveis ativos
             </th>
             <th
               className="eyebrow text-left py-3 pl-4"
@@ -64,16 +64,16 @@ export default function PaymentsHistory({ meses }: Props) {
                 {m.mes_ano}
               </td>
               <td
-                className="body-reg py-3 text-right tabular-nums"
-                style={{ color: 'var(--color-foreground)' }}
-              >
-                {formatBRL(m.receita_mes)}
-              </td>
-              <td
                 className="body py-3 text-right tabular-nums"
                 style={{ color: 'var(--color-coral)' }}
               >
                 {formatBRL(m.comissao_mes)}
+              </td>
+              <td
+                className="body-reg py-3 text-right tabular-nums"
+                style={{ color: 'var(--color-muted-fg)' }}
+              >
+                {m.n_imoveis_ativos}
               </td>
               <td className="py-3 pl-4">
                 <StatusPill status={m.status} label={m.label_status} />

@@ -7,7 +7,6 @@ import {
   getDashboardEvolucaoMensal,
   aggregatePaymentStats,
   formatBRL,
-  formatBRLCompact,
 } from '@/lib/queries'
 import LogoutButton from './logout-button'
 import CommissionChart from './commission-chart'
@@ -87,6 +86,7 @@ export default async function DashboardPage() {
   const mediaComissaoMensal =
     summary.meses_distintos > 0 ? summary.comissao_2pct / summary.meses_distintos : 0
   const pagStats = aggregatePaymentStats(evolucao)
+  const totalAReceber = pagStats.total_a_pagar + pagStats.total_em_apuracao
 
   return (
     <DashboardShell email={user.email ?? ''} partnerName={partner.display_name}>
@@ -102,7 +102,7 @@ export default async function DashboardPage() {
             className="body-reg mt-1"
             style={{ color: 'var(--color-muted-fg)' }}
           >
-            Desempenho dos imóveis que você indicou nos últimos 12 meses.
+            Sua comissão dos imóveis que você indicou nos últimos 12 meses.
           </p>
         </div>
         <div className="shrink-0 mt-1">
@@ -110,21 +110,24 @@ export default async function DashboardPage() {
         </div>
       </div>
 
+      {/* HERO: comissao do parceiro */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <MetricCard
-          icon={<TrendingUp size={20} />}
-          label="Receita últimos 12 meses"
-          value={formatBRLCompact(summary.receita_total_12m)}
-          sub={`${summary.imoveis_com_receita} imóveis ativos · ${summary.imoveis_indicados} indicados`}
+          icon={<BadgeDollarSign size={20} />}
+          label="Sua comissão · últimos 12 meses"
+          value={formatBRL(summary.comissao_2pct)}
+          sub={`média de ${formatBRL(Math.round(mediaComissaoMensal))}/mês · ${summary.imoveis_com_receita} imóveis ativos de ${summary.imoveis_indicados} indicados`}
+          accent
         />
         <MetricCard
           icon={<Wallet size={20} />}
-          label="Sua comissão (2%)"
-          value={formatBRL(summary.comissao_2pct)}
-          sub={`${summary.meses_distintos} meses · média ${formatBRL(
-            Math.round(mediaComissaoMensal)
-          )}/mês`}
-          accent
+          label="Total a receber"
+          value={formatBRL(totalAReceber)}
+          sub={
+            pagStats.count_a_pagar > 0
+              ? `${formatBRL(pagStats.total_a_pagar)} aguardando pagamento · ${formatBRL(pagStats.total_em_apuracao)} em apuração`
+              : `mês corrente em apuração · fecha no último dia`
+          }
         />
       </div>
 
@@ -136,14 +139,14 @@ export default async function DashboardPage() {
           boxShadow: 'var(--shadow-card)',
         }}
       >
-        <h4 style={{ color: 'var(--color-foreground)' }}>Evolução mensal</h4>
+        <h4 style={{ color: 'var(--color-foreground)' }}>Sua comissão mês a mês</h4>
         <p
           className="detail-reg mt-1 mb-4"
           style={{ color: 'var(--color-muted-fg)' }}
         >
-          Receita gerada pelos seus imóveis, mês a mês
+          Evolução dos seus ganhos ao longo dos últimos 12 meses
         </p>
-        <RevenueChart data={evolucao} />
+        <CommissionChart data={evolucao} />
       </div>
 
       {/* Status de pagamento de comissoes */}
@@ -237,11 +240,11 @@ export default async function DashboardPage() {
               className="detail-reg mt-1"
               style={{ color: 'var(--color-muted-fg)' }}
             >
-              Ordenados por comissão gerada no período · 2% sobre a receita de reservas do imóvel
+              Ordenados por comissão gerada no período
             </p>
           </div>
         </div>
-        <ImoveisTable imoveis={imoveisAtivos} emptyLabel="Nenhum imóvel com receita no período." />
+        <ImoveisTable imoveis={imoveisAtivos} emptyLabel="Nenhum imóvel com comissão no período." />
       </div>
 
       {imoveisInativos.length > 0 && (
@@ -256,7 +259,7 @@ export default async function DashboardPage() {
             className="body cursor-pointer select-none"
             style={{ color: 'var(--color-muted-fg)' }}
           >
-            Imóveis sem receita nos últimos 12 meses ({imoveisInativos.length})
+            Imóveis sem comissão nos últimos 12 meses ({imoveisInativos.length})
           </summary>
           <div className="mt-4">
             <ImoveisTable imoveis={imoveisInativos} emptyLabel="—" />
@@ -440,13 +443,7 @@ function ImoveisTable({
               className="eyebrow text-right py-3"
               style={{ color: 'var(--color-muted-fg)' }}
             >
-              Receita 12m
-            </th>
-            <th
-              className="eyebrow text-right py-3"
-              style={{ color: 'var(--color-muted-fg)' }}
-            >
-              Comissão
+              Sua comissão (12m)
             </th>
             <th
               className="eyebrow text-right py-3"
@@ -467,16 +464,6 @@ function ImoveisTable({
               </td>
               <td className="py-3">
                 <StatusPill status={i.prop_status} />
-              </td>
-              <td
-                className="body-reg py-3 text-right tabular-nums"
-                style={{ color: 'var(--color-foreground)' }}
-              >
-                {i.receita_12m > 0 ? (
-                  formatBRL(i.receita_12m)
-                ) : (
-                  <span style={{ color: 'var(--color-muted-fg)' }}>—</span>
-                )}
               </td>
               <td
                 className="body py-3 text-right tabular-nums"
