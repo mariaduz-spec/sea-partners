@@ -64,35 +64,28 @@ export default function PaymentsHistory({ meses, extratoPorMes }: Props) {
 
 function MesRow({ mes, imoveis }: { mes: DashboardMes; imoveis: ImovelNoMes[] }) {
   const [open, setOpen] = useState(false)
-  const hasImoveis = imoveis.length > 0
   const ChevronIcon = open ? ChevronDown : ChevronRight
 
   return (
     <div style={{ borderBottom: '1px solid var(--color-border)' }}>
       <button
         type="button"
-        onClick={() => hasImoveis && setOpen(!open)}
-        disabled={!hasImoveis}
+        onClick={() => setOpen(!open)}
         aria-expanded={open}
-        className="w-full grid grid-cols-[auto_1fr_auto_auto_auto] gap-3 sm:gap-4 items-center py-3 text-left transition"
-        style={{
-          background: 'transparent',
-          cursor: hasImoveis ? 'pointer' : 'default',
-        }}
+        className="w-full grid grid-cols-[auto_1fr_auto_auto_auto] gap-3 sm:gap-4 items-center py-3 text-left transition cursor-pointer"
+        style={{ background: 'transparent' }}
         onMouseEnter={(e) =>
-          hasImoveis && (e.currentTarget.style.background = 'var(--color-muted)')
+          (e.currentTarget.style.background = 'var(--color-muted)')
         }
         onMouseLeave={(e) =>
           (e.currentTarget.style.background = 'transparent')
         }
       >
         <span className="w-4 flex items-center justify-center">
-          {hasImoveis ? (
-            <ChevronIcon
-              size={14}
-              style={{ color: 'var(--color-muted-fg)' }}
-            />
-          ) : null}
+          <ChevronIcon
+            size={14}
+            style={{ color: 'var(--color-muted-fg)' }}
+          />
         </span>
         <span className="body" style={{ color: 'var(--color-foreground)' }}>
           {mes.mes_ano}
@@ -114,7 +107,7 @@ function MesRow({ mes, imoveis }: { mes: DashboardMes; imoveis: ImovelNoMes[] })
         </span>
       </button>
 
-      {open && hasImoveis && (
+      {open && (
         <div
           className="pb-3"
           style={{
@@ -123,37 +116,39 @@ function MesRow({ mes, imoveis }: { mes: DashboardMes; imoveis: ImovelNoMes[] })
           }}
         >
           <div className="px-4 py-2 detail" style={{ color: 'var(--color-muted-fg)' }}>
-            Quebra por imóvel
+            {imoveis.length > 0
+              ? `Quebra por imóvel (${imoveis.length})`
+              : 'Sem detalhamento por imóvel disponível neste mês.'}
           </div>
-          <div>
-            {imoveis.map((i) => (
-              <div
-                key={i.code}
-                className="grid grid-cols-[auto_1fr_auto_auto_auto] gap-3 sm:gap-4 items-center py-2 px-1"
-                style={{
-                  borderTop: '1px solid var(--color-border)',
-                }}
-              >
-                <span className="w-4" aria-hidden />
-                <span
-                  className="body-reg font-mono"
-                  style={{ color: 'var(--color-foreground)', fontSize: 13 }}
+          {imoveis.length > 0 && (
+            <div>
+              {imoveis.map((i) => (
+                <div
+                  key={i.code}
+                  className="grid grid-cols-[auto_1fr_auto_auto_auto] gap-3 sm:gap-4 items-center py-2 px-1"
+                  style={{ borderTop: '1px solid var(--color-border)' }}
                 >
-                  {i.code}
-                </span>
-                <span
-                  className="body-reg text-right tabular-nums"
-                  style={{ color: 'var(--color-foreground)' }}
-                >
-                  {formatBRL(i.comissao)}
-                </span>
-                <span className="hidden sm:inline" aria-hidden />
-                <span className="pl-2">
-                  <PropertyStatusPill status={i.prop_status} />
-                </span>
-              </div>
-            ))}
-          </div>
+                  <span className="w-4" aria-hidden />
+                  <span
+                    className="body-reg font-mono"
+                    style={{ color: 'var(--color-foreground)', fontSize: 13 }}
+                  >
+                    {i.code}
+                  </span>
+                  <span
+                    className="body-reg text-right tabular-nums"
+                    style={{ color: 'var(--color-foreground)' }}
+                  >
+                    {formatBRL(i.comissao)}
+                  </span>
+                  <span className="hidden sm:inline" aria-hidden />
+                  <span className="pl-2">
+                    <PropertyStatusPill status={i.prop_status} />
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
