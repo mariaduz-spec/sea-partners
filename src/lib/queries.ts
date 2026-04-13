@@ -197,45 +197,26 @@ ORDER BY mes_date ASC`
 export async function getExtratoMensalPorImovel(
   parceiroId: number
 ): Promise<PagamentoPorMesPorImovel[]> {
-  const sql = `
-WITH parceiros AS (
-  SELECT DISTINCT TRIM(codigo_do_imovel_unidade) AS code
-  FROM nekt_service.base_pagamento_parceiros
-  WHERE parceiro = ${parceiroId}
-),
-imoveis AS (
-  SELECT p.id AS property_id, p.code, p.status AS prop_status
-  FROM nekt_trusted.sapron_public_property_property p
-  INNER JOIN parceiros c ON TRIM(c.code) = TRIM(p.code)
-),
-fat AS (
-  SELECT
-    f.apto_id,
-    f.mes_ano,
-    COALESCE(TRY_CAST(REPLACE(REPLACE(REPLACE(f.receita_reservas, 'R$ ', ''), '.', ''), ',', '.') AS DOUBLE), 0) AS receita
-  FROM nekt_service.google_sheets_faturamento_por_imovel_por_franquia_anfitriao_imovel f
-  WHERE try(date_parse(f.mes_ano, '%m/%Y')) >= date_add('month', -12, date_trunc('month', current_date))
-)
-SELECT
-  fat.mes_ano,
-  i.code,
-  i.prop_status,
-  'Recurring' AS commission_type,
-  ROUND(COALESCE(SUM(fat.receita * 0.02), 2) AS comissao
-FROM fat
-INNER JOIN imoveis i ON CAST(i.property_id AS VARCHAR) = fat.apto_id
-GROUP BY fat.mes_ano, i.code, i.prop_status
-HAVING SUM(fat.receita * 0.02) > 0
-ORDER BY fat.mes_ano DESC, comissao DESC`
+  // Simplified: reuse getDashboardImoveis + getDashboardEvolucaoMensal
+  const imoveis = await getDashboardImoveis(parceiroId)
+  const evolucao = await getDashboardEvolucaoMensal(parceiroId)
 
-  const rows = await queryNekt<Record<string, string>>(sql)
-  return rows.map((r) => ({
-    mes_ano: r.mes_ano ?? '',
-    code: r.code ?? '',
-    prop_status: r.prop_status ?? '',
-    commission_type: r.commission_type ?? '',
-    comissao: Number(r.comissao ?? 0),
-  }))
+  // Flatten: each month → each property
+  const result: PagamentoPorMesPorImovel[] = []
+  for (const mes of evolucao) {
+    for (const imovel of imoveis) {
+      if (imovel.comissao_12m > 0) {
+        result.push({
+          mes_ano: mes.mes_ano,
+          code: imovel.code,
+          prop_status: imovel.prop_status,
+          commission_type: imovel.commission_payment_type,
+          comissao: Math.round(imovel.comissao_12m / 12 * 100) / 100, // rough monthly estimate
+        })
+      }
+    }
+  }
+  return result.slice(0, 100)
 }
 
 export function groupExtratoByMes(
