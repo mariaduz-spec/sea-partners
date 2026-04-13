@@ -10,6 +10,7 @@ import {
 } from '@/lib/queries'
 import LogoutButton from './logout-button'
 import RevenueChart from './revenue-chart'
+import { TrendingUp, Wallet, Building2, MailQuestion } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -25,14 +26,37 @@ export default async function DashboardPage() {
   if (!partner) {
     return (
       <DashboardShell email={user.email ?? ''}>
-        <div className="rounded-xl border bg-white p-12 text-center">
-          <p className="text-slate-700 text-lg font-medium">
-            Sua conta ainda não está vinculada a um parceiro
+        <div
+          className="rounded-xl p-12 text-center max-w-lg mx-auto"
+          style={{
+            background: 'var(--color-background)',
+            border: '1px solid var(--color-border)',
+          }}
+        >
+          <div
+            className="inline-flex items-center justify-center w-14 h-14 rounded-full mb-4"
+            style={{
+              background: 'var(--color-primary-light)',
+              color: 'var(--color-primary)',
+            }}
+          >
+            <MailQuestion size={24} />
+          </div>
+          <p className="p-ui" style={{ color: 'var(--color-foreground)' }}>
+            Conta ainda não vinculada
           </p>
-          <p className="text-slate-500 text-sm mt-3">
-            Entre em contato com o time comercial da Seazone pra liberar o acesso.
+          <p
+            className="body-reg mt-2"
+            style={{ color: 'var(--color-muted-fg)' }}
+          >
+            Entre em contato com o time comercial da Seazone para liberar seu acesso como parceiro.
           </p>
-          <p className="text-xs text-slate-400 mt-6 font-mono">{user.email}</p>
+          <p
+            className="detail-reg mt-6 font-mono"
+            style={{ color: 'var(--color-muted-fg)' }}
+          >
+            {user.email}
+          </p>
         </div>
       </DashboardShell>
     )
@@ -44,79 +68,125 @@ export default async function DashboardPage() {
     getDashboardEvolucaoMensal(partner.parceiro_id),
   ])
 
+  const imoveisAtivos = imoveis.filter((i) => i.receita_12m > 0)
+  const imoveisInativos = imoveis.filter((i) => i.receita_12m === 0)
+
   return (
     <DashboardShell email={user.email ?? ''} partnerName={partner.display_name}>
+      {/* Saudacao */}
+      <div className="mb-6">
+        <h3 style={{ color: 'var(--color-foreground)' }}>
+          Olá, {partner.display_name}
+        </h3>
+        <p
+          className="body-reg mt-1"
+          style={{ color: 'var(--color-muted-fg)' }}
+        >
+          Aqui está o desempenho dos imóveis que você indicou nos últimos 12 meses.
+        </p>
+      </div>
+
+      {/* Metric cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <MetricCard
+          icon={<TrendingUp size={20} />}
           label="Receita últimos 12 meses"
           value={formatBRLCompact(summary.receita_total_12m)}
-          sub={`${summary.imoveis_com_receita} imóveis ativos de ${summary.imoveis_indicados} indicados`}
+          sub={`${summary.imoveis_com_receita} imóveis ativos · ${summary.imoveis_indicados} indicados`}
         />
         <MetricCard
+          icon={<Wallet size={20} />}
           label="Sua comissão (2%)"
           value={formatBRL(summary.comissao_2pct)}
-          sub={`${summary.meses_distintos} meses com receita registrada`}
+          sub={`${summary.meses_distintos} meses com receita · média R$ ${
+            summary.meses_distintos > 0
+              ? Math.round(
+                  summary.comissao_2pct / summary.meses_distintos
+                ).toLocaleString('pt-BR')
+              : 0
+          }/mês`}
           accent
         />
       </div>
 
-      <div className="rounded-xl border bg-white p-6 mb-6">
-        <h2 className="font-semibold text-slate-900 mb-1">Receita mensal</h2>
-        <p className="text-xs text-slate-500 mb-4">Últimos 12 meses · em R$</p>
+      {/* Grafico */}
+      <div
+        className="rounded-xl p-6 mb-6"
+        style={{
+          background: 'var(--color-background)',
+          border: '1px solid var(--color-border)',
+        }}
+      >
+        <h4 style={{ color: 'var(--color-foreground)' }}>Evolução mensal</h4>
+        <p
+          className="detail-reg mt-1 mb-4"
+          style={{ color: 'var(--color-muted-fg)' }}
+        >
+          Receita gerada pelos seus imóveis, mês a mês
+        </p>
         <RevenueChart data={evolucao} />
       </div>
 
-      <div className="rounded-xl border bg-white p-6">
-        <div className="flex items-baseline justify-between mb-4">
-          <div>
-            <h2 className="font-semibold text-slate-900">Seus imóveis indicados</h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Top {imoveis.length} por receita · comissão 2% sobre receita reservas
-            </p>
+      {/* Tabela imoveis ativos */}
+      <div
+        className="rounded-xl p-6 mb-6"
+        style={{
+          background: 'var(--color-background)',
+          border: '1px solid var(--color-border)',
+        }}
+      >
+        <div className="flex items-start justify-between gap-4 mb-4">
+          <div className="flex items-start gap-3">
+            <div
+              className="inline-flex items-center justify-center w-10 h-10 rounded-full shrink-0"
+              style={{
+                background: 'var(--color-primary-light)',
+                color: 'var(--color-primary)',
+              }}
+            >
+              <Building2 size={18} />
+            </div>
+            <div>
+              <h4 style={{ color: 'var(--color-foreground)' }}>
+                Imóveis rendendo receita ({imoveisAtivos.length})
+              </h4>
+              <p
+                className="detail-reg mt-1"
+                style={{ color: 'var(--color-muted-fg)' }}
+              >
+                Ordenados por receita do período. Comissão = 2% da receita de reservas.
+              </p>
+            </div>
           </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="text-left text-slate-500 border-b">
-              <tr>
-                <th className="py-2 font-medium">Código</th>
-                <th className="py-2 font-medium">Status</th>
-                <th className="py-2 font-medium text-right">Receita 12m</th>
-                <th className="py-2 font-medium text-right">Comissão</th>
-                <th className="py-2 font-medium text-right">Meses ativos</th>
-              </tr>
-            </thead>
-            <tbody>
-              {imoveis.map((i) => (
-                <tr key={i.apto_id} className="border-b last:border-0 hover:bg-slate-50">
-                  <td className="py-2.5 font-mono text-xs">{i.code}</td>
-                  <td className="py-2.5">
-                    <StatusPill status={i.prop_status} />
-                  </td>
-                  <td className="py-2.5 text-right tabular-nums">
-                    {i.receita_12m > 0 ? (
-                      formatBRL(i.receita_12m)
-                    ) : (
-                      <span className="text-slate-400">—</span>
-                    )}
-                  </td>
-                  <td className="py-2.5 text-right tabular-nums font-medium">
-                    {i.comissao_12m > 0 ? (
-                      formatBRL(i.comissao_12m)
-                    ) : (
-                      <span className="text-slate-400">—</span>
-                    )}
-                  </td>
-                  <td className="py-2.5 text-right tabular-nums text-slate-600">{i.n_meses}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ImoveisTable imoveis={imoveisAtivos} emptyLabel="Nenhum imóvel com receita no período." />
       </div>
+
+      {/* Imoveis sem receita — opcional */}
+      {imoveisInativos.length > 0 && (
+        <details
+          className="rounded-xl p-6"
+          style={{
+            background: 'var(--color-muted)',
+            border: '1px solid var(--color-border)',
+          }}
+        >
+          <summary
+            className="body cursor-pointer select-none"
+            style={{ color: 'var(--color-muted-fg)' }}
+          >
+            Imóveis sem receita nos últimos 12 meses ({imoveisInativos.length})
+          </summary>
+          <div className="mt-4">
+            <ImoveisTable imoveis={imoveisInativos} emptyLabel="—" />
+          </div>
+        </details>
+      )}
     </DashboardShell>
   )
 }
+
+/* ─────────────────────────────────────────── Sub-componentes ─ */
 
 function DashboardShell({
   email,
@@ -128,30 +198,62 @@ function DashboardShell({
   children: React.ReactNode
 }) {
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight">Sea Partners</h1>
-            <p className="text-xs text-slate-500">{partnerName ?? 'Portal do parceiro'}</p>
+    <div className="min-h-screen" style={{ background: 'var(--color-muted)' }}>
+      <header
+        style={{
+          background: 'var(--color-background)',
+          borderBottom: '1px solid var(--color-border)',
+        }}
+      >
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div
+              className="inline-flex items-center justify-center w-9 h-9 rounded-full shrink-0"
+              style={{
+                background: 'var(--color-primary)',
+                color: 'white',
+              }}
+            >
+              <span className="body" style={{ fontWeight: 700 }}>
+                S
+              </span>
+            </div>
+            <div>
+              <p className="body" style={{ color: 'var(--color-foreground)' }}>
+                Sea Partners
+              </p>
+              <p
+                className="detail-reg"
+                style={{ color: 'var(--color-muted-fg)' }}
+              >
+                {partnerName ?? 'Portal do parceiro'}
+              </p>
+            </div>
           </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-slate-600 hidden sm:inline">{email}</span>
+          <div className="flex items-center gap-3">
+            <span
+              className="detail-reg hidden sm:inline"
+              style={{ color: 'var(--color-muted-fg)' }}
+            >
+              {email}
+            </span>
             <LogoutButton />
           </div>
         </div>
       </header>
-      <main className="max-w-6xl mx-auto px-6 py-8">{children}</main>
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">{children}</main>
     </div>
   )
 }
 
 function MetricCard({
+  icon,
   label,
   value,
   sub,
   accent = false,
 }: {
+  icon: React.ReactNode
   label: string
   value: string
   sub: string
@@ -159,13 +261,161 @@ function MetricCard({
 }) {
   return (
     <div
-      className={`rounded-xl p-6 ${
-        accent ? 'bg-slate-900 text-white' : 'bg-white border'
-      }`}
+      className="rounded-xl p-6"
+      style={
+        accent
+          ? {
+              background: 'var(--color-primary)',
+              color: 'white',
+            }
+          : {
+              background: 'var(--color-background)',
+              border: '1px solid var(--color-border)',
+            }
+      }
     >
-      <p className={`text-sm ${accent ? 'text-slate-300' : 'text-slate-500'}`}>{label}</p>
-      <p className="text-3xl font-semibold mt-2 tabular-nums">{value}</p>
-      <p className={`text-xs mt-2 ${accent ? 'text-slate-400' : 'text-slate-500'}`}>{sub}</p>
+      <div className="flex items-center gap-2 mb-3">
+        <div
+          className="inline-flex items-center justify-center w-8 h-8 rounded-full"
+          style={{
+            background: accent
+              ? 'rgba(255, 255, 255, 0.15)'
+              : 'var(--color-primary-light)',
+            color: accent ? 'white' : 'var(--color-primary)',
+          }}
+        >
+          {icon}
+        </div>
+        <p
+          className="body"
+          style={{
+            color: accent ? 'rgba(255, 255, 255, 0.8)' : 'var(--color-muted-fg)',
+          }}
+        >
+          {label}
+        </p>
+      </div>
+      <p className="metric">{value}</p>
+      <p
+        className="detail-reg mt-2"
+        style={{
+          color: accent ? 'rgba(255, 255, 255, 0.7)' : 'var(--color-muted-fg)',
+        }}
+      >
+        {sub}
+      </p>
+    </div>
+  )
+}
+
+function ImoveisTable({
+  imoveis,
+  emptyLabel,
+}: {
+  imoveis: Array<{
+    apto_id: string
+    code: string
+    prop_status: string
+    receita_12m: number
+    comissao_12m: number
+    n_meses: number
+  }>
+  emptyLabel: string
+}) {
+  if (imoveis.length === 0) {
+    return (
+      <p
+        className="body-reg text-center py-8"
+        style={{ color: 'var(--color-muted-fg)' }}
+      >
+        {emptyLabel}
+      </p>
+    )
+  }
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full">
+        <thead>
+          <tr
+            style={{ borderBottom: '1px solid var(--color-border)' }}
+          >
+            <th
+              className="detail text-left py-2"
+              style={{ color: 'var(--color-muted-fg)', fontWeight: 500 }}
+            >
+              Código
+            </th>
+            <th
+              className="detail text-left py-2"
+              style={{ color: 'var(--color-muted-fg)', fontWeight: 500 }}
+            >
+              Status
+            </th>
+            <th
+              className="detail text-right py-2"
+              style={{ color: 'var(--color-muted-fg)', fontWeight: 500 }}
+            >
+              Receita 12m
+            </th>
+            <th
+              className="detail text-right py-2"
+              style={{ color: 'var(--color-muted-fg)', fontWeight: 500 }}
+            >
+              Comissão
+            </th>
+            <th
+              className="detail text-right py-2"
+              style={{ color: 'var(--color-muted-fg)', fontWeight: 500 }}
+            >
+              Meses ativos
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {imoveis.map((i) => (
+            <tr
+              key={i.apto_id}
+              style={{ borderBottom: '1px solid var(--color-border)' }}
+            >
+              <td
+                className="body py-3 font-mono"
+                style={{ color: 'var(--color-foreground)' }}
+              >
+                {i.code}
+              </td>
+              <td className="py-3">
+                <StatusPill status={i.prop_status} />
+              </td>
+              <td
+                className="body-reg py-3 text-right tabular-nums"
+                style={{ color: 'var(--color-foreground)' }}
+              >
+                {i.receita_12m > 0 ? (
+                  formatBRL(i.receita_12m)
+                ) : (
+                  <span style={{ color: 'var(--color-muted-fg)' }}>—</span>
+                )}
+              </td>
+              <td
+                className="body py-3 text-right tabular-nums"
+                style={{ color: 'var(--color-foreground)' }}
+              >
+                {i.comissao_12m > 0 ? (
+                  formatBRL(i.comissao_12m)
+                ) : (
+                  <span style={{ color: 'var(--color-muted-fg)' }}>—</span>
+                )}
+              </td>
+              <td
+                className="body-reg py-3 text-right tabular-nums"
+                style={{ color: 'var(--color-muted-fg)' }}
+              >
+                {i.n_meses}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }
@@ -174,9 +424,19 @@ function StatusPill({ status }: { status: string }) {
   const isActive = status === 'Active'
   return (
     <span
-      className={`inline-block text-xs px-2 py-0.5 rounded-full ${
-        isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'
-      }`}
+      className="detail inline-block px-2 py-0.5 rounded-full"
+      style={
+        isActive
+          ? {
+              background:
+                'color-mix(in oklab, var(--color-success) 15%, transparent)',
+              color: 'var(--color-success)',
+            }
+          : {
+              background: 'var(--color-muted)',
+              color: 'var(--color-muted-fg)',
+            }
+      }
     >
       {status || '—'}
     </span>

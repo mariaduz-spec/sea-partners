@@ -15,19 +15,29 @@ export default function RevenueChart({ data }: Props) {
 
   return (
     <ResponsiveContainer width="100%" height={260}>
-      <BarChart data={chartData} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-        <XAxis dataKey="mes" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+      <BarChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#E6E7EA" />
+        <XAxis
+          dataKey="mes"
+          tick={{ fontSize: 11, fill: '#6B6E84' }}
+          axisLine={false}
+          tickLine={false}
+        />
         <YAxis
           tickFormatter={(v) => `R$${Math.round(v / 1000)}k`}
-          tick={{ fontSize: 11, fill: '#64748b' }}
+          tick={{ fontSize: 11, fill: '#6B6E84' }}
           width={60}
           axisLine={false}
           tickLine={false}
         />
         <Tooltip
-          cursor={{ fill: '#f1f5f9' }}
-          contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12 }}
+          cursor={{ fill: '#F3F3F5' }}
+          contentStyle={{
+            borderRadius: 8,
+            border: '1px solid #E6E7EA',
+            fontSize: 12,
+            fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif',
+          }}
           formatter={(value, name) => {
             const n = typeof value === 'number' ? value : Number(value) || 0
             const label = name === 'receita' ? 'Receita' : 'Comissão'
@@ -37,7 +47,7 @@ export default function RevenueChart({ data }: Props) {
             ]
           }}
         />
-        <Bar dataKey="receita" fill="#0f172a" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="receita" fill="#0055FF" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   )

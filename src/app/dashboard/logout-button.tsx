@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
+import { LogOut } from 'lucide-react'
 
 export default function LogoutButton() {
   const [loading, setLoading] = useState(false)
@@ -20,8 +21,19 @@ export default function LogoutButton() {
     <button
       onClick={handleLogout}
       disabled={loading}
-      className="text-sm text-slate-600 hover:text-slate-900 transition disabled:opacity-50"
+      className="body inline-flex items-center gap-1.5 px-3 rounded-full transition disabled:opacity-50"
+      style={{
+        background: 'transparent',
+        color: 'var(--color-muted-fg)',
+        height: '36px',
+      }}
+      onMouseEnter={(e) =>
+        !e.currentTarget.disabled &&
+        (e.currentTarget.style.background = 'var(--color-muted)')
+      }
+      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
     >
+      <LogOut size={14} />
       {loading ? 'Saindo...' : 'Sair'}
     </button>
   )
