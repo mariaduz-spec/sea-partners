@@ -193,16 +193,67 @@ ORDER BY mes_date ASC`
   })
 }
 
+/** Extrato mensal por imóvel - detalhe da receita por imóvel em cada mês */
 export async function getExtratoMensalPorImovel(
   parceiroId: number
 ): Promise<PagamentoPorMesPorImovel[]> {
-  return []
+  const sql = `
+WITH parceiros AS (
+  SELECT DISTINCT TRIM(codigo_do_imovel_unidade) AS code
+  FROM nekt_service.base_pagamento_parceiros
+  WHERE parceiro = ${parceiroId}
+),
+imoveis AS (
+  SELECT p.id AS property_id, p.code, p.status AS prop_status
+  FROM nekt_trusted.sapron_public_property_property p
+  INNER JOIN parceiros c ON TRIM(c.code) = TRIM(p.code)
+),
+fat AS (
+  SELECT
+    f.apto_id,
+    f.mes_ano,
+    COALESCE(TRY_CAST(REPLACE(REPLACE(REPLACE(f.receita_reservas, 'R$ ', ''), '.', ''), ',', '.') AS DOUBLE), 0) AS receita
+  FROM nekt_service.google_sheets_faturamento_por_imovel_por_franquia_anfitriao_imovel f
+  WHERE try(date_parse(f.mes_ano, '%m/%Y')) >= date_add('month', -12, date_trunc('month', current_date))
+)
+SELECT
+  fat.mes_ano,
+  i.code,
+  i.prop_status,
+  'Recurring' AS commission_type,
+  ROUND(COALESCE(SUM(fat.receita * 0.02), 2) AS comissao
+FROM fat
+INNER JOIN imoveis i ON CAST(i.property_id AS VARCHAR) = fat.apto_id
+GROUP BY fat.mes_ano, i.code, i.prop_status
+HAVING SUM(fat.receita * 0.02) > 0
+ORDER BY fat.mes_ano DESC, comissao DESC`
+
+  const rows = await queryNekt<Record<string, string>>(sql)
+  return rows.map((r) => ({
+    mes_ano: r.mes_ano ?? '',
+    code: r.code ?? '',
+    prop_status: r.prop_status ?? '',
+    commission_type: r.commission_type ?? '',
+    comissao: Number(r.comissao ?? 0),
+  }))
 }
 
 export function groupExtratoByMes(
   extrato: PagamentoPorMesPorImovel[]
 ): Record<string, Array<{ code: string; prop_status: string; commission_type: string; comissao: number }>> {
-  return {}
+  const map: Record<string, Array<{ code: string; prop_status: string; commission_type: string; comissao: number }>> = {}
+  for (const item of extrato) {
+    if (!map[item.mes_ano]) {
+      map[item.mes_ano] = []
+    }
+    map[item.mes_ano].push({
+      code: item.code,
+      prop_status: item.prop_status,
+      commission_type: item.commission_type,
+      comissao: item.comissao,
+    })
+  }
+  return map
 }
 
 export function aggregatePaymentStats(meses: DashboardMes[]) {
