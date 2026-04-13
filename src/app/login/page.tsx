@@ -2,12 +2,19 @@
 
 import { useState } from 'react'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
-import { Mail, ArrowRight, CheckCircle2 } from 'lucide-react'
+import { Mail, ArrowRight, CheckCircle2, ChevronDown, User } from 'lucide-react'
+
+const DEV_USERS = [
+  { email: 'demo.mineia@seazone.com.br', name: 'Mineia' },
+  { email: 'demo.gilberto@seazone.com.br', name: 'Gilberto Baumgarten' },
+  { email: 'maria.duz@seazone.com.br', name: 'Maria Duz (Katia Emmel)' },
+]
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
   const [errorMsg, setErrorMsg] = useState('')
+  const [showDev, setShowDev] = useState(false)
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -168,9 +175,67 @@ export default function LoginPage() {
             >
               Sem senha. Enviamos um link pro seu email.
             </p>
+
+            {process.env.NODE_ENV === 'development' && (
+              <div className="mt-4 pt-4" style={{ borderTop: '1px dashed var(--color-border)' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowDev(!showDev)}
+                  className="w-full flex items-center justify-between body-reg px-3 py-2 rounded-lg transition"
+                  style={{
+                    background: 'var(--color-navy)',
+                    color: 'white',
+                    opacity: 0.7,
+                  }}
+                >
+                  <span className="flex items-center gap-2">
+                    <User size={14} />
+                    Dev mode — login rápido
+                  </span>
+                  <ChevronDown size={14} className={`transition-transform ${showDev ? 'rotate-180' : ''}`} />
+                </button>
+
+                {showDev && (
+                  <div className="mt-2 space-y-1">
+                    {DEV_USERS.map((u) => (
+                      <DevLoginButton key={u.email} email={u.email} name={u.name} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </form>
         )}
       </div>
     </div>
+  )
+}
+
+function DevLoginButton({ email, name }: { email: string; name: string }) {
+  const [loading, setLoading] = useState(false)
+
+  async function handleDevLogin() {
+    setLoading(true)
+    window.location.href = `/api/dev-login?email=${encodeURIComponent(email)}`
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleDevLogin}
+      disabled={loading}
+      className="w-full text-left body-reg px-3 py-2 rounded-lg transition"
+      style={{
+        background: 'var(--color-background)',
+        border: '1px solid var(--color-border)',
+        color: 'var(--color-foreground)',
+        opacity: loading ? 0.5 : 1,
+      }}
+    >
+      {loading ? 'Enviando...' : name}
+      <span className="detail-reg block" style={{ color: 'var(--color-muted-fg)' }}>
+        {email}
+      </span>
+    </button>
   )
 }
