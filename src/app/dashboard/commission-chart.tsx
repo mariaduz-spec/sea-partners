@@ -67,22 +67,12 @@ export default function CommissionChart({ data }: Props) {
           }}
           formatter={(value, name) => {
             const n = typeof value === 'number' ? value : Number(value) || 0
-            if (name === 'comissao') {
-              return [
-                `R$ ${n.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
-                'Comissão',
-              ]
-            }
-            if (name === 'receita') {
-              return [
-                `R$ ${n.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
-                'Receita imóveis',
-              ]
-            }
-            return [String(n), name]
+            return [
+              `R$ ${n.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+              name === 'comissao' ? 'Comissão (2%)' : name,
+            ]
           }}
         />
-        <Bar dataKey="receita" fill={bar2Color} radius={[4, 4, 0, 0]} />
         <Bar dataKey="comissao" fill={barColor} radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
