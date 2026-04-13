@@ -1,9 +1,8 @@
 import 'server-only'
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
 
 /**
- * Dev login — cria sessão diretamente via service role, sem email.
+ * Dev login — cria sessão via OTP admin, bypassing PKCE.
  * SÓ funciona em development mode.
  * Use: GET /api/dev-login?email=xxx
  */
@@ -24,48 +23,58 @@ export async function GET(request: NextRequest) {
 
   if (!serviceKey) {
     return NextResponse.json(
-      { error: 'SUPABASE_SERVICE_ROLE_KEY not set — add it to .env.local' },
+      { error: 'SUPABASE_SERVICE_ROLE_KEY not set' },
       { status: 500 }
     )
   }
 
-  const admin = createSupabaseAdmin(supabaseUrl, serviceKey)
-
-  // Find or create confirmed user
-  const { data: usersData } = await admin.auth.admin.listUsers()
-  let user = usersData?.users.find((u) => u.email === email)
-
-  if (!user) {
-    const { data: newUser, error } = await admin.auth.admin.createUser({
+  // OTP via admin API with create_new_session — creates session directly, no PKCE needed
+  const res = await fetch(`${supabaseUrl}/auth/v1/otp`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${serviceKey}`,
+      apikey: serviceKey,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
       email,
-      email_confirm: true,
-    })
-    if (error || !newUser.user) {
-      return NextResponse.json(
-        { error: error?.message ?? 'Failed to create user' },
-        { status: 500 }
-      )
-    }
-    user = newUser.user
+      create_new_session: true,
+    }),
+  })
+
+  if (!res.ok) {
+    const err = await res.text()
+    return NextResponse.json({ error: err }, { status: 500 })
   }
 
-  // Generate a session (creates access + refresh tokens)
-  const { data: sessionData, error: sessionError } =
-    await admin.auth.admin.generateLink({
-      type: 'magiclink',
-      email,
-    })
-
-  if (sessionError || !sessionData) {
-    return NextResponse.json(
-      { error: sessionError?.message ?? 'Failed to generate link' },
-      { status: 500 }
-    )
+  const data = await res.json() as {
+    access_token?: string
+    refresh_token?: string
+    expires_in?: number
   }
 
-  // Redirect to callback with the hashed token — it will exchange automatically
   const origin = new URL(request.url).origin
-  const callbackUrl = `${origin}/auth/callback?code=${sessionData.properties.hashed_token}&next=/dashboard`
 
-  return NextResponse.redirect(callbackUrl)
+  // If session was created directly
+  if (data.access_token && data.refresh_token) {
+    const response = NextResponse.redirect(`${origin}/dashboard`)
+    response.cookies.set('sb-access-token', data.access_token, {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax',
+      maxAge: data.expires_in ?? 3600,
+      path: '/',
+    })
+    response.cookies.set('sb-refresh-token', data.refresh_token, {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7,
+      path: '/',
+    })
+    return response
+  }
+
+  // Fallback: OTP sent but no session — redirect to login
+  return NextResponse.redirect(`${origin}/login?dev=otp_sent`)
 }
