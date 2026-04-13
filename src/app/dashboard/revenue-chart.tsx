@@ -1,12 +1,25 @@
 'use client'
 
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from 'recharts'
+import { useTheme } from '@/lib/theme-provider'
 
 type Props = {
   data: Array<{ mes_ano: string; receita_mes: number; comissao_mes: number }>
 }
 
 export default function RevenueChart({ data }: Props) {
+  const { resolved } = useTheme()
+  const isDark = resolved === 'dark'
+
+  // recharts nao le CSS vars — precisa de hexes resolvidos por theme.
+  const gridColor = isDark ? '#1F2858' : '#EBEBF5'
+  const axisColor = isDark ? '#8A8EA3' : '#62656F'
+  const barColor = isDark ? '#F56A67' : '#0C1640'
+  const tooltipBg = isDark ? '#141D4A' : '#FFFFFF'
+  const tooltipBorder = isDark ? '#2D3769' : '#EBEBF5'
+  const tooltipText = isDark ? '#F5F5F7' : '#19191A'
+  const cursorFill = isDark ? 'rgba(245, 106, 103, 0.1)' : '#F9F9F9'
+
   const chartData = data.map((d) => ({
     mes: d.mes_ano,
     receita: d.receita_mes,
@@ -16,25 +29,27 @@ export default function RevenueChart({ data }: Props) {
   return (
     <ResponsiveContainer width="100%" height={260}>
       <BarChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#EBEBF5" />
+        <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
         <XAxis
           dataKey="mes"
-          tick={{ fontSize: 11, fill: '#62656F' }}
+          tick={{ fontSize: 11, fill: axisColor }}
           axisLine={false}
           tickLine={false}
         />
         <YAxis
           tickFormatter={(v) => `R$${Math.round(v / 1000)}k`}
-          tick={{ fontSize: 11, fill: '#62656F' }}
+          tick={{ fontSize: 11, fill: axisColor }}
           width={60}
           axisLine={false}
           tickLine={false}
         />
         <Tooltip
-          cursor={{ fill: '#F9F9F9' }}
+          cursor={{ fill: cursorFill }}
           contentStyle={{
             borderRadius: 8,
-            border: '1px solid #EBEBF5',
+            border: `1px solid ${tooltipBorder}`,
+            background: tooltipBg,
+            color: tooltipText,
             fontSize: 12,
             fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif',
           }}
@@ -47,7 +62,7 @@ export default function RevenueChart({ data }: Props) {
             ]
           }}
         />
-        <Bar dataKey="receita" fill="#0C1640" radius={[6, 6, 0, 0]} />
+        <Bar dataKey="receita" fill={barColor} radius={[6, 6, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   )

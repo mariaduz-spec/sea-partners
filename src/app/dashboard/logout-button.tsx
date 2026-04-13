@@ -23,16 +23,16 @@ export default function LogoutButton() {
       disabled={loading}
       className="body inline-flex items-center gap-1.5 px-3 rounded-lg transition disabled:opacity-50"
       style={{
-        background: 'rgba(255, 255, 255, 0.1)',
-        color: 'white',
-        height: '36px',
+        background: 'var(--color-header-hover)',
+        color: 'var(--color-header-fg)',
+        height: 36,
       }}
       onMouseEnter={(e) =>
         !e.currentTarget.disabled &&
         (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)')
       }
       onMouseLeave={(e) =>
-        (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)')
+        (e.currentTarget.style.background = 'var(--color-header-hover)')
       }
     >
       <LogOut size={14} />

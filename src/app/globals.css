@@ -3,35 +3,42 @@
 /* ─────────────────────────────────────────────
    SEAZONE - tokens inspirados no site oficial
    https://seazone.com.br/
+   Light mode = default. Dark mode via :root[data-theme="dark"].
    ───────────────────────────────────────────── */
 
 :root {
   /* Brand */
-  --color-navy: #0C1640;              /* navy escuro — headers, textos fortes, backgrounds escuros */
+  --color-navy: #0C1640;
   --color-navy-hover: #19224F;
-  --color-blue: #0D4BD0;              /* azul brilhante — links, highlights, graficos */
+  --color-blue: #0D4BD0;
   --color-blue-hover: #0A3BA8;
 
-  --color-coral: #F1605D;             /* coral — CTA principal da marca */
+  --color-coral: #F1605D;
   --color-coral-hover: #DE4845;
   --color-coral-light: #FDECEC;
 
   /* Neutros */
-  --color-foreground: #19191A;         /* text forte (quase preto) */
-  --color-foreground-mid: #394760;     /* text medio */
-  --color-muted-fg: #62656F;           /* text secundario */
+  --color-foreground: #19191A;
+  --color-foreground-mid: #394760;
+  --color-muted-fg: #62656F;
   --color-background: #FFFFFF;
-  --color-surface: #F9F9F9;            /* off-white para fundos de secao */
+  --color-surface: #F9F9F9;
   --color-muted: #F3F3F5;
   --color-border: #EBEBF5;
   --color-border-strong: #D9DCDF;
+
+  /* Header (usado no dashboard) */
+  --color-header-bg: var(--color-navy);
+  --color-header-fg: #FFFFFF;
+  --color-header-muted: rgba(255, 255, 255, 0.65);
+  --color-header-hover: rgba(255, 255, 255, 0.12);
 
   /* Semantic */
   --color-success: #047755;
   --color-error: #FF2732;
   --color-warning: #FF9900;
 
-  /* Aliases compat Bluezone/shadcn */
+  /* Aliases shadcn-style */
   --color-primary: var(--color-coral);
   --color-primary-hover: var(--color-coral-hover);
   --color-primary-light: var(--color-coral-light);
@@ -39,14 +46,42 @@
   /* Radius */
   --radius-sm: 4px;
   --radius-md: 6px;
-  --radius-lg: 8px;                   /* botoes, inputs (padrao site) */
-  --radius-xl: 12px;                  /* cards */
+  --radius-lg: 8px;
+  --radius-xl: 12px;
   --radius-2xl: 16px;
   --radius-full: 9999px;
 
   /* Shadow */
   --shadow-card: 0 1px 3px rgba(12, 22, 64, 0.08);
-  --shadow-card-hover: 0 4px 12px rgba(12, 22, 64, 0.12);
+  --shadow-card-lg: 0 8px 24px rgba(12, 22, 64, 0.12);
+  --shadow-coral: 0 8px 24px rgba(241, 96, 93, 0.28);
+}
+
+:root[data-theme="dark"] {
+  --color-foreground: #F5F5F7;
+  --color-foreground-mid: #C4C8DB;
+  --color-muted-fg: #8A8EA3;
+  --color-background: #141D4A;       /* cards */
+  --color-surface: #080E32;          /* body bg */
+  --color-muted: #0F1742;
+  --color-border: #1F2858;
+  --color-border-strong: #2D3769;
+
+  /* Brand em dark: tons levemente ajustados */
+  --color-navy: #0A1240;
+  --color-coral: #F56A67;
+  --color-coral-hover: #F78380;
+  --color-coral-light: rgba(245, 106, 103, 0.15);
+
+  /* Header fica mais proximo do surface em dark (menos contraste no topo) */
+  --color-header-bg: #0A1240;
+  --color-header-fg: #F5F5F7;
+  --color-header-muted: rgba(245, 245, 247, 0.65);
+  --color-header-hover: rgba(245, 245, 247, 0.10);
+
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-card-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-coral: 0 8px 24px rgba(245, 106, 103, 0.32);
 }
 
 @theme inline {
@@ -60,6 +95,7 @@ body {
   color: var(--color-foreground);
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s, color 0.2s;
 }
 
 /* ─────────────────────────────────────────────
@@ -78,7 +114,6 @@ h4, .h4 { font-size: 18px; font-weight: 600; line-height: 1.4; }
 .detail     { font-size: 12px; font-weight: 500; line-height: 1.4; letter-spacing: 0.01em; }
 .detail-reg { font-size: 12px; font-weight: 400; line-height: 1.4; }
 
-/* Numero grande pra metric cards */
 .metric {
   font-size: 40px;
   font-weight: 700;
@@ -90,7 +125,6 @@ h4, .h4 { font-size: 18px; font-weight: 600; line-height: 1.4; }
   .metric { font-size: 48px; }
 }
 
-/* Eyebrow — pequeno texto em caps */
 .eyebrow {
   font-size: 11px;
   font-weight: 700;

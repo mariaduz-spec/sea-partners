@@ -10,6 +10,7 @@ import {
 } from '@/lib/queries'
 import LogoutButton from './logout-button'
 import RevenueChart from './revenue-chart'
+import { ThemeToggle } from '@/components/theme-toggle'
 import { TrendingUp, Wallet, Building2, MailQuestion } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -43,7 +44,7 @@ export default async function DashboardPage() {
           >
             <MailQuestion size={24} />
           </div>
-          <p className="p-ui" style={{ color: 'var(--color-navy)' }}>
+          <p className="p-ui" style={{ color: 'var(--color-foreground)' }}>
             Conta ainda não vinculada
           </p>
           <p
@@ -76,12 +77,11 @@ export default async function DashboardPage() {
 
   return (
     <DashboardShell email={user.email ?? ''} partnerName={partner.display_name}>
-      {/* Saudacao */}
       <div className="mb-6">
         <span className="eyebrow" style={{ color: 'var(--color-coral)' }}>
           Olá 👋
         </span>
-        <h3 className="mt-1" style={{ color: 'var(--color-navy)' }}>
+        <h3 className="mt-1" style={{ color: 'var(--color-foreground)' }}>
           {partner.display_name}
         </h3>
         <p
@@ -92,7 +92,6 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      {/* Metric cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <MetricCard
           icon={<TrendingUp size={20} />}
@@ -111,7 +110,6 @@ export default async function DashboardPage() {
         />
       </div>
 
-      {/* Grafico */}
       <div
         className="rounded-xl p-6 mb-6"
         style={{
@@ -120,7 +118,7 @@ export default async function DashboardPage() {
           boxShadow: 'var(--shadow-card)',
         }}
       >
-        <h4 style={{ color: 'var(--color-navy)' }}>Evolução mensal</h4>
+        <h4 style={{ color: 'var(--color-foreground)' }}>Evolução mensal</h4>
         <p
           className="detail-reg mt-1 mb-4"
           style={{ color: 'var(--color-muted-fg)' }}
@@ -130,7 +128,6 @@ export default async function DashboardPage() {
         <RevenueChart data={evolucao} />
       </div>
 
-      {/* Tabela imoveis ativos */}
       <div
         className="rounded-xl p-6 mb-6"
         style={{
@@ -150,7 +147,7 @@ export default async function DashboardPage() {
             <Building2 size={18} />
           </div>
           <div>
-            <h4 style={{ color: 'var(--color-navy)' }}>
+            <h4 style={{ color: 'var(--color-foreground)' }}>
               Imóveis rendendo receita ({imoveisAtivos.length})
             </h4>
             <p
@@ -164,7 +161,6 @@ export default async function DashboardPage() {
         <ImoveisTable imoveis={imoveisAtivos} emptyLabel="Nenhum imóvel com receita no período." />
       </div>
 
-      {/* Imoveis sem receita */}
       {imoveisInativos.length > 0 && (
         <details
           className="rounded-xl p-6"
@@ -203,8 +199,8 @@ function DashboardShell({
     <div className="min-h-screen" style={{ background: 'var(--color-surface)' }}>
       <header
         style={{
-          background: 'var(--color-navy)',
-          color: 'white',
+          background: 'var(--color-header-bg)',
+          color: 'var(--color-header-fg)',
         }}
       >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
@@ -221,21 +217,25 @@ function DashboardShell({
               </span>
             </div>
             <div>
-              <p className="body" style={{ color: 'white' }}>
+              <p className="body" style={{ color: 'var(--color-header-fg)' }}>
                 Sea Partners
               </p>
-              <p className="detail-reg" style={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+              <p
+                className="detail-reg"
+                style={{ color: 'var(--color-header-muted)' }}
+              >
                 {partnerName ?? 'Portal do parceiro'}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <span
               className="detail-reg hidden sm:inline"
-              style={{ color: 'rgba(255, 255, 255, 0.7)' }}
+              style={{ color: 'var(--color-header-muted)' }}
             >
               {email}
             </span>
+            <ThemeToggle />
             <LogoutButton />
           </div>
         </div>
@@ -266,7 +266,7 @@ function MetricCard({
           ? {
               background: 'var(--color-coral)',
               color: 'white',
-              boxShadow: '0 8px 24px rgba(241, 96, 93, 0.28)',
+              boxShadow: 'var(--shadow-coral)',
             }
           : {
               background: 'var(--color-background)',
@@ -425,7 +425,7 @@ function StatusPill({ status }: { status: string }) {
         isActive
           ? {
               background:
-                'color-mix(in oklab, var(--color-success) 15%, transparent)',
+                'color-mix(in oklab, var(--color-success) 18%, transparent)',
               color: 'var(--color-success)',
             }
           : {
