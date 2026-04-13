@@ -5,6 +5,7 @@ import {
   getDashboardSummary,
   getDashboardEvolucaoMensal,
   getExtratoMensalPorImovel,
+  getWithdrawals,
   aggregatePaymentStats,
   groupExtratoByMes,
   formatBRL,
@@ -13,7 +14,7 @@ import {
 import ChatPanel from '@/app/dashboard/chat-panel'
 import PaymentsHistory from '@/app/dashboard/payments-history'
 import DashboardShell from '@/components/dashboard-shell'
-import { Wallet, MailQuestion, Coins, Receipt } from 'lucide-react'
+import { Wallet, MailQuestion, Coins, Receipt, Banknote, ArrowDownCircle, CheckCircle, XCircle, Clock } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -48,10 +49,11 @@ export default async function PagamentosPage() {
     displayName = partner.display_name
   }
 
-  const [summary, evolucao, extrato] = await Promise.all([
+  const [summary, evolucao, extrato, { withdrawals, stats: withdrawStats }] = await Promise.all([
     getDashboardSummary(partnerId),
     getDashboardEvolucaoMensal(partnerId),
     getExtratoMensalPorImovel(partnerId),
+    getWithdrawals(partnerId),
   ])
 
   const stats = aggregatePaymentStats(evolucao)
@@ -90,6 +92,65 @@ export default async function PagamentosPage() {
         </div>
         <PaymentsHistory meses={evolucao} extratoPorMes={extratoGrouped} />
       </div>
+
+      {withdrawals.length > 0 && (
+        <div className="rounded-xl p-6 mb-6" style={{ background: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
+          <div className="flex items-start gap-3 mb-4">
+            <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg" style={{ background: 'var(--color-navy)', color: 'white' }}>
+              <Banknote size={18} />
+            </div>
+            <div>
+              <h4>Saques</h4>
+              <p className="detail-reg mt-1">Histórico de retiradas realizadas e pendentes</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div className="rounded-lg p-4 text-center" style={{ background: 'color-mix(in oklab, var(--color-success) 10%, transparent)' }}>
+              <p className="body" style={{ color: 'var(--color-muted-fg)' }}>Total sacado</p>
+              <p className="metric" style={{ color: 'var(--color-success)', fontSize: 22 }}>{formatBRLCompact(withdrawStats.total_withdrawn)}</p>
+              <p className="detail-reg" style={{ color: 'var(--color-muted-fg)' }}>{withdrawStats.count_withdrawn} saque(s)</p>
+            </div>
+            <div className="rounded-lg p-4 text-center" style={{ background: 'color-mix(in oklab, var(--color-warning, #f59e0b) 10%, transparent)' }}>
+              <p className="body" style={{ color: 'var(--color-muted-fg)' }}>Pendente</p>
+              <p className="metric" style={{ color: 'var(--color-warning, #f59e0b)', fontSize: 22 }}>{formatBRLCompact(withdrawStats.total_pending)}</p>
+              <p className="detail-reg" style={{ color: 'var(--color-muted-fg)' }}>{withdrawStats.count_pending} pendente(s)</p>
+            </div>
+            <div className="rounded-lg p-4 text-center" style={{ background: 'var(--color-surface)' }}>
+              <p className="body" style={{ color: 'var(--color-muted-fg)' }}>Solicitações</p>
+              <p className="metric" style={{ fontSize: 22 }}>{withdrawals.length}</p>
+              <p className="detail-reg" style={{ color: 'var(--color-muted-fg)' }}>total de pedidos</p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            {withdrawals.slice(0, 10).map((w) => {
+              const isPaid = w.status === 'Paid'
+              const isCanceled = w.status === 'Canceled'
+              const statusIcon = isPaid ? <CheckCircle size={14} /> : isCanceled ? <XCircle size={14} /> : <Clock size={14} />
+              const statusColor = isPaid ? 'var(--color-success)' : isCanceled ? 'var(--color-error)' : '#f59e0b'
+              const dateStr = w.date_paid || w.date_requested
+              return (
+                <div key={w.id} className="flex items-center justify-between py-2" style={{ borderBottom: '1px solid var(--color-border)' }}>
+                  <div className="flex items-center gap-3">
+                    <div style={{ color: statusColor }}>{statusIcon}</div>
+                    <div>
+                      <p className="body" style={{ color: 'var(--color-foreground)' }}>{dateStr ? new Date(dateStr).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'}</p>
+                      <p className="detail-reg" style={{ color: 'var(--color-muted-fg)' }}>{w.payment_method || 'Pix'}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="body" style={{ color: isCanceled ? 'var(--color-muted-fg)' : 'var(--color-foreground)' }}>
+                      {isCanceled ? `— ${formatBRL(w.value)}` : formatBRL(w.value)}
+                    </p>
+                    <p className="detail-reg" style={{ color: statusColor }}>{w.status === 'Paid' ? 'Pago' : w.status === 'Canceled' ? 'Cancelado' : 'Pendente'}</p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {imoveisPorComissao.length > 0 && (
         <div className="rounded-xl p-6" style={{ background: 'var(--color-background)', border: '1px solid var(--color-border)' }}>

@@ -193,6 +193,69 @@ ORDER BY mes_date ASC`
   })
 }
 
+export type Withdrawal = {
+  id: number
+  value: number
+  status: string
+  date_requested: string | null
+  date_paid: string | null
+  payment_method: string
+  cancel_reason: string | null
+}
+
+export type WithdrawStats = {
+  total_withdrawn: number
+  total_pending: number
+  count_withdrawn: number
+  count_pending: number
+}
+
+/** Saques / retiradas via sapron_public_financial_partner_withdraw_request */
+export async function getWithdrawals(parceiroId: number): Promise<{ withdrawals: Withdrawal[]; stats: WithdrawStats }> {
+  const sql = `
+SELECT
+  id,
+  COALESCE(TRY_CAST(value AS DOUBLE), 0) AS value,
+  status,
+  date_requested,
+  date_paid,
+  payment_method,
+  cancel_reason
+FROM nekt_trusted.sapron_public_financial_partner_withdraw_request
+WHERE partner_id = ${parceiroId}
+ORDER BY date_requested DESC
+LIMIT 50`
+
+  const rows = await queryNekt<Record<string, string>>(sql)
+
+  const withdrawals: Withdrawal[] = rows.map((r) => ({
+    id: Number(r.id ?? 0),
+    value: Number(r.value ?? 0),
+    status: r.status ?? '',
+    date_requested: r.date_requested ?? null,
+    date_paid: r.date_paid ?? null,
+    payment_method: r.payment_method ?? '',
+    cancel_reason: r.cancel_reason ?? null,
+  }))
+
+  const total_withdrawn = withdrawals
+    .filter((w) => w.status === 'Paid')
+    .reduce((s, w) => s + w.value, 0)
+  const total_pending = withdrawals
+    .filter((w) => w.status !== 'Paid' && w.status !== 'Canceled')
+    .reduce((s, w) => s + w.value, 0)
+
+  return {
+    withdrawals,
+    stats: {
+      total_withdrawn,
+      total_pending,
+      count_withdrawn: withdrawals.filter((w) => w.status === 'Paid').length,
+      count_pending: withdrawals.filter((w) => w.status !== 'Paid' && w.status !== 'Canceled').length,
+    },
+  }
+}
+
 /** Extrato mensal por imóvel - detalhe da receita por imóvel em cada mês */
 export async function getExtratoMensalPorImovel(
   parceiroId: number
