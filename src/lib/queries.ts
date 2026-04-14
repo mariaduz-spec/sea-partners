@@ -19,7 +19,7 @@ export { formatBRL, formatBRLCompact, describeCommission } from './format'
 
 /**
  * Queries do portal Sea Partners.
- * Cadeia validada: base_pagamento_parceiros → property_property → faturamento
+ * Cadeia: sapron_public_partners_indications_property → property_property → faturamento
  */
 
 // Status de pagamento por mês
@@ -57,38 +57,36 @@ export function computePaymentStatus(
   }
 }
 
-/** Resumo consolidado usando base_pagamento_parceiros */
+/** Resumo consolidado */
 export async function getDashboardSummary(parceiroId: number): Promise<DashboardSummary> {
-  // Simples: pega do resultado de getDashboardImoveis
   const imoveis = await getDashboardImoveis(parceiroId)
   const evolucao = await getDashboardEvolucaoMensal(parceiroId)
 
   const imoveisAtivos = imoveis.filter(i => i.prop_status === 'Active')
-  const comissao12m = imoveis.reduce((sum, i) => sum + i.comissao_12m, 0)
+  const comissaoTotal = imoveis.reduce((sum, i) => sum + i.comissao_12m, 0)
   const mesesComReceita = evolucao.filter(e => e.comissao_mes > 0).length
 
   return {
     total_indicacoes: imoveis.length,
-    indicacoes_won: imoveis.length, // base_pagamento_parceiros já é só indicações com imóvel
+    indicacoes_won: imoveis.length,
     indicacoes_lost: 0,
     indicacoes_in_progress: 0,
     imoveis_ativos: imoveisAtivos.length,
-    comissao_12m_estimada: comissao12m,
-    media_comissao_mensal: mesesComReceita > 0 ? comissao12m / mesesComReceita : 0,
+    comissao_12m_estimada: comissaoTotal,
+    media_comissao_mensal: mesesComReceita > 0 ? comissaoTotal / mesesComReceita : 0,
     meses_com_receita: mesesComReceita,
   }
 }
 
-/** Lista de imóveis usando a cadeia correta */
+/** Lista de imóveis - usa indications_property (partner_id direto, não base_pagamento) */
 export async function getDashboardImoveis(parceiroId: number): Promise<DashboardImovel[]> {
   const sql = `
-WITH parceiros AS (
+WITH imoveis_do_partner AS (
   SELECT DISTINCT
-    TRIM(codigo_do_imovel_unidade) AS code,
-    taxa_de_adesao,
-    status
-  FROM nekt_service.base_pagamento_parceiros
-  WHERE parceiro = ${parceiroId}
+    TRY_CAST(property_id AS BIGINT) AS property_id
+  FROM nekt_trusted.sapron_public_partners_indications_property
+  WHERE TRY_CAST(partner_id AS BIGINT) = ${parceiroId}
+    AND status = 'Won'
 ),
 imoveis AS (
   SELECT
@@ -96,7 +94,7 @@ imoveis AS (
     p.id AS property_id,
     p.status AS prop_status
   FROM nekt_trusted.sapron_public_property_property p
-  INNER JOIN parceiros c ON TRIM(c.code) = TRIM(p.code)
+  INNER JOIN imoveis_do_partner i ON i.property_id = TRY_CAST(p.id AS BIGINT)
 ),
 fat AS (
   SELECT
@@ -144,18 +142,20 @@ LIMIT 80`
   }))
 }
 
-/** Evolução mensal */
+/** Evolução mensal - usa indications_property */
 export async function getDashboardEvolucaoMensal(parceiroId: number): Promise<DashboardMes[]> {
   const sql = `
-WITH parceiros AS (
-  SELECT DISTINCT TRIM(codigo_do_imovel_unidade) AS code
-  FROM nekt_service.base_pagamento_parceiros
-  WHERE parceiro = ${parceiroId}
+WITH imoveis_do_partner AS (
+  SELECT DISTINCT
+    TRY_CAST(property_id AS BIGINT) AS property_id
+  FROM nekt_trusted.sapron_public_partners_indications_property
+  WHERE TRY_CAST(partner_id AS BIGINT) = ${parceiroId}
+    AND status = 'Won'
 ),
 imoveis AS (
   SELECT p.id AS property_id
   FROM nekt_trusted.sapron_public_property_property p
-  INNER JOIN parceiros c ON TRIM(c.code) = TRIM(p.code)
+  INNER JOIN imoveis_do_partner i ON i.property_id = TRY_CAST(p.id AS BIGINT)
 ),
 fat AS (
   SELECT
@@ -212,12 +212,10 @@ export type WithdrawStats = {
 
 /**
  * Saques via sapron_public_financial_partner_withdraw_request.
- * partner_id na tabela de saques pode ser diferente do mapping.
- * Mapeamento conhecido: maria.duz@seazone.com.br -> withdraw partner_id = 324
+ * 17818 (Katia) -> withdraw partner_id = 324 (special mapping)
+ * Others use direct partner_id mapping
  */
 export async function getWithdrawals(parceiroId: number): Promise<{ withdrawals: Withdrawal[]; stats: WithdrawStats }> {
-  // Mapeamento: Some partners use different ID in withdraws table
-  // 17818 (Katia) -> 324, others use direct mapping
   const withdrawPartnerId = parceiroId === 17818 ? 324 : parceiroId
 
   const sql = `
@@ -230,7 +228,7 @@ SELECT
   payment_method,
   cancel_reason
 FROM nekt_trusted.sapron_public_financial_partner_withdraw_request
-WHERE partner_id = ${withdrawPartnerId}
+WHERE TRY_CAST(partner_id AS BIGINT) = ${withdrawPartnerId}
 ORDER BY date_requested DESC
 LIMIT 50`
 
@@ -264,15 +262,13 @@ LIMIT 50`
   }
 }
 
-/** Extrato mensal por imóvel - detalhe da receita por imóvel em cada mês */
+/** Extrato mensal por imóvel */
 export async function getExtratoMensalPorImovel(
   parceiroId: number
 ): Promise<PagamentoPorMesPorImovel[]> {
-  // Simplified: reuse getDashboardImoveis + getDashboardEvolucaoMensal
   const imoveis = await getDashboardImoveis(parceiroId)
   const evolucao = await getDashboardEvolucaoMensal(parceiroId)
 
-  // Flatten: each month → each property
   const result: PagamentoPorMesPorImovel[] = []
   for (const mes of evolucao) {
     for (const imovel of imoveis) {
@@ -282,7 +278,7 @@ export async function getExtratoMensalPorImovel(
           code: imovel.code,
           prop_status: imovel.prop_status,
           commission_type: imovel.commission_payment_type,
-          comissao: Math.round(imovel.comissao_12m / 12 * 100) / 100, // rough monthly estimate
+          comissao: Math.round(imovel.comissao_12m / 12 * 100) / 100,
         })
       }
     }
