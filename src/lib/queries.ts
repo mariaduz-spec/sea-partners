@@ -101,14 +101,14 @@ imoveis AS (
   INNER JOIN partner_imoveis i ON TRY_CAST(p.id AS BIGINT) = i.property_id
 ),
 fat AS (
-  SELECT f.apto_id, COALESCE(TRY_CAST(REPLACE(REPLACE(REPLACE(f.receita_reservas, 'R$ ', ''), '.', ''), ',', '.') AS DOUBLE), 0) AS receita
+  SELECT f.apto_id, f.mes_ano, COALESCE(TRY_CAST(REPLACE(REPLACE(REPLACE(f.receita_reservas, 'R$ ', ''), '.', ''), ',', '.') AS DOUBLE), 0) AS receita
   FROM nekt_service.google_sheets_faturamento_por_imovel_por_franquia_anfitriao_imovel f
   WHERE try(date_parse(f.mes_ano, '%m/%Y')) IS NOT NULL
 ),
 comissao AS (
   SELECT i.code, i.property_id, i.prop_status,
     COALESCE(SUM(fat.receita * 0.02), 0) AS comissao_12m,
-    COUNT(DISTINCT CASE WHEN fat.receita > 0 THEN 1 END) AS n_meses_ativos
+    COUNT(DISTINCT CASE WHEN fat.receita > 0 THEN fat.mes_ano END) AS n_meses_ativos
   FROM imoveis i LEFT JOIN fat ON fat.apto_id = CAST(i.property_id AS VARCHAR)
   GROUP BY i.code, i.property_id, i.prop_status
 )
