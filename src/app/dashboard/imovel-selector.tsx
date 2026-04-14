@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { formatBRL } from '@/lib/format'
-import { Building2, ChevronDown, ChevronRight, CheckCircle, Clock } from 'lucide-react'
+import { Building2, CheckCircle, Clock } from 'lucide-react'
 
 type Imovel = {
   indication_id: number
@@ -22,7 +22,12 @@ type Props = {
 
 export default function ImovelSelector({ imoveisAtivos, imoveisInativos }: Props) {
   const allImoveis = [...imoveisAtivos, ...imoveisInativos]
-  const [selected, setSelected] = useState<Imovel | null>(null)
+  const [selectedCode, setSelectedCode] = useState<string>('')
+
+  // Debug: log data received
+  useEffect(() => {
+    console.log('ImovelSelector received:', { imoveisAtivos, imoveisInativos })
+  }, [imoveisAtivos, imoveisInativos])
 
   if (allImoveis.length === 0) {
     return (
@@ -32,16 +37,17 @@ export default function ImovelSelector({ imoveisAtivos, imoveisInativos }: Props
     )
   }
 
+  // Find selected object from code
+  const selected = allImoveis.find(i => i.code === selectedCode) || null
+
   return (
     <div>
       {/* Dropdown */}
       <select
-        value={selected?.indication_id ?? ''}
+        value={selectedCode}
         onChange={(e) => {
-          const id = Number(e.target.value)
-          const found = id ? allImoveis.find((i) => i.indication_id === id) || null : null
-          console.log('onChange:', id, found)
-          setSelected(found)
+          console.log('onChange value:', e.target.value)
+          setSelectedCode(e.target.value)
         }}
         className="w-full rounded-lg px-3 py-2 border"
         style={{
@@ -55,7 +61,7 @@ export default function ImovelSelector({ imoveisAtivos, imoveisInativos }: Props
         {imoveisAtivos.length > 0 && (
           <optgroup label="Ativos">
             {imoveisAtivos.map((i) => (
-              <option key={i.indication_id} value={i.indication_id}>
+              <option key={i.code} value={i.code}>
                 {i.code} — {i.commission_display}
               </option>
             ))}
@@ -64,7 +70,7 @@ export default function ImovelSelector({ imoveisAtivos, imoveisInativos }: Props
         {imoveisInativos.length > 0 && (
           <optgroup label="Inativos">
             {imoveisInativos.map((i) => (
-              <option key={i.indication_id} value={i.indication_id}>
+              <option key={i.code} value={i.code}>
                 {i.code} — {i.commission_display}
               </option>
             ))}
