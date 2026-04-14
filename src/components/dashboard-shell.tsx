@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import LogoutButton from '@/app/dashboard/logout-button'
 import { ThemeToggle } from '@/components/theme-toggle'
+import NotificationsDropdown from '@/components/notifications-dropdown'
 
 /**
  * Shell compartilhado entre /dashboard e /pagamentos.
@@ -60,6 +61,7 @@ export default function DashboardShell({
             >
               {email}
             </span>
+            <NotificationsDropdown />
             <ThemeToggle />
             <LogoutButton />
           </div>
