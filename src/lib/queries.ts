@@ -78,55 +78,40 @@ export async function getDashboardSummary(parceiroId: number): Promise<Dashboard
   }
 }
 
-/** Lista de imóveis - usa indications_property (partner_id direto, não base_pagamento) */
+/** Lista de imóveis - UNION de indications_property + base_pagamento (funciona pros dois) */
 export async function getDashboardImoveis(parceiroId: number): Promise<DashboardImovel[]> {
   const sql = `
-WITH imoveis_do_partner AS (
-  SELECT DISTINCT
-    TRY_CAST(property_id AS BIGINT) AS property_id
+WITH partner_imoveis AS (
+  SELECT DISTINCT TRY_CAST(property_id AS BIGINT) AS property_id
   FROM nekt_trusted.sapron_public_partners_indications_property
-  WHERE TRY_CAST(partner_id AS BIGINT) = ${parceiroId}
-    AND status = 'Won'
+  WHERE TRY_CAST(partner_id AS BIGINT) = ${parceiroId} AND status = 'Won'
+  UNION
+  SELECT DISTINCT TRY_CAST(p.id AS BIGINT) AS property_id
+  FROM nekt_service.base_pagamento_parceiros b
+  INNER JOIN nekt_trusted.sapron_public_property_property p ON TRIM(b.codigo_do_imovel_unidade) = TRIM(p.code)
+  WHERE TRY_CAST(b.parceiro AS BIGINT) = ${parceiroId}
 ),
 imoveis AS (
-  SELECT
-    p.code,
-    p.id AS property_id,
-    p.status AS prop_status
+  SELECT p.code, p.id AS property_id, p.status AS prop_status
   FROM nekt_trusted.sapron_public_property_property p
-  INNER JOIN imoveis_do_partner i ON i.property_id = TRY_CAST(p.id AS BIGINT)
+  INNER JOIN partner_imoveis i ON TRY_CAST(p.id AS BIGINT) = i.property_id
 ),
 fat AS (
-  SELECT
-    f.apto_id,
-    COALESCE(TRY_CAST(REPLACE(REPLACE(REPLACE(f.receita_reservas, 'R$ ', ''), '.', ''), ',', '.') AS DOUBLE), 0) AS receita
+  SELECT f.apto_id, COALESCE(TRY_CAST(REPLACE(REPLACE(REPLACE(f.receita_reservas, 'R$ ', ''), '.', ''), ',', '.') AS DOUBLE), 0) AS receita
   FROM nekt_service.google_sheets_faturamento_por_imovel_por_franquia_anfitriao_imovel f
   WHERE try(date_parse(f.mes_ano, '%m/%Y')) IS NOT NULL
 ),
 comissao AS (
-  SELECT
-    i.code,
-    i.property_id,
-    i.prop_status,
+  SELECT i.code, i.property_id, i.prop_status,
     COALESCE(SUM(fat.receita * 0.02), 0) AS comissao_12m,
     COUNT(DISTINCT CASE WHEN fat.receita > 0 THEN 1 END) AS n_meses_ativos
-  FROM imoveis i
-  LEFT JOIN fat ON fat.apto_id = CAST(i.property_id AS VARCHAR)
+  FROM imoveis i LEFT JOIN fat ON fat.apto_id = CAST(i.property_id AS VARCHAR)
   GROUP BY i.code, i.property_id, i.prop_status
 )
-SELECT
-  0 AS indication_id,
-  property_id,
-  code,
-  prop_status,
-  'Recurring' AS commission_payment_type,
-  0.02 AS commission,
-  0 AS fixed_commission_amount,
-  ROUND(comissao_12m, 2) AS comissao_12m,
-  n_meses_ativos
-FROM comissao
-ORDER BY comissao_12m DESC
-LIMIT 80`
+SELECT 0 AS indication_id, property_id, code, prop_status,
+  'Recurring' AS commission_payment_type, 0.02 AS commission, 0 AS fixed_commission_amount,
+  ROUND(comissao_12m, 2) AS comissao_12m, n_meses_ativos
+FROM comissao ORDER BY comissao_12m DESC LIMIT 80`
 
   const rows = await queryNekt<Record<string, string>>(sql)
 
@@ -142,39 +127,36 @@ LIMIT 80`
   }))
 }
 
-/** Evolução mensal - usa indications_property */
+/** Evolução mensal - UNION de indications_property + base_pagamento */
 export async function getDashboardEvolucaoMensal(parceiroId: number): Promise<DashboardMes[]> {
   const sql = `
-WITH imoveis_do_partner AS (
-  SELECT DISTINCT
-    TRY_CAST(property_id AS BIGINT) AS property_id
+WITH partner_imoveis AS (
+  SELECT DISTINCT TRY_CAST(property_id AS BIGINT) AS property_id
   FROM nekt_trusted.sapron_public_partners_indications_property
-  WHERE TRY_CAST(partner_id AS BIGINT) = ${parceiroId}
-    AND status = 'Won'
+  WHERE TRY_CAST(partner_id AS BIGINT) = ${parceiroId} AND status = 'Won'
+  UNION
+  SELECT DISTINCT TRY_CAST(p.id AS BIGINT) AS property_id
+  FROM nekt_service.base_pagamento_parceiros b
+  INNER JOIN nekt_trusted.sapron_public_property_property p ON TRIM(b.codigo_do_imovel_unidade) = TRIM(p.code)
+  WHERE TRY_CAST(b.parceiro AS BIGINT) = ${parceiroId}
 ),
 imoveis AS (
   SELECT p.id AS property_id
   FROM nekt_trusted.sapron_public_property_property p
-  INNER JOIN imoveis_do_partner i ON i.property_id = TRY_CAST(p.id AS BIGINT)
+  INNER JOIN partner_imoveis i ON TRY_CAST(p.id AS BIGINT) = i.property_id
 ),
 fat AS (
-  SELECT
-    f.apto_id,
-    f.mes_ano,
-    try(date_parse(f.mes_ano, '%m/%Y')) AS mes_date,
+  SELECT f.apto_id, f.mes_ano, try(date_parse(f.mes_ano, '%m/%Y')) AS mes_date,
     COALESCE(TRY_CAST(REPLACE(REPLACE(REPLACE(f.receita_reservas, 'R$ ', ''), '.', ''), ',', '.') AS DOUBLE), 0) AS receita
   FROM nekt_service.google_sheets_faturamento_por_imovel_por_franquia_anfitriao_imovel f
   WHERE try(date_parse(f.mes_ano, '%m/%Y')) IS NOT NULL
 )
-SELECT
-  fat.mes_ano,
+SELECT fat.mes_ano,
   COALESCE(ROUND(SUM(fat.receita), 2), 0) AS receita_imoveis,
   COALESCE(ROUND(SUM(fat.receita * 0.02), 2), 0) AS comissao_mes,
   COUNT(DISTINCT CASE WHEN fat.receita > 0 THEN fat.apto_id END) AS n_imoveis_ativos
-FROM fat
-INNER JOIN imoveis i ON CAST(i.property_id AS VARCHAR) = fat.apto_id
-GROUP BY fat.mes_ano, fat.mes_date
-ORDER BY mes_date ASC`
+FROM fat INNER JOIN imoveis i ON CAST(i.property_id AS VARCHAR) = fat.apto_id
+GROUP BY fat.mes_ano, fat.mes_date ORDER BY mes_date ASC`
 
   const rows = await queryNekt<Record<string, string>>(sql)
 
