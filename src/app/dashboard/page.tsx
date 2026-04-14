@@ -44,7 +44,7 @@ export default async function DashboardPage() {
   }
 
   const [summary, imoveis, evolucao] = await Promise.all([
-    getDashboardSummary(partner.parceiro_id),
+    getDashboardSummary(partner.parceiro_id, user.email ?? ''),
     getDashboardImoveis(partner.parceiro_id),
     getDashboardEvolucaoMensal(partner.parceiro_id),
   ])

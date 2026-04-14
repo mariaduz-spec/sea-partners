@@ -62,19 +62,29 @@ export async function getIndicacoesPendentes(parceiroEmail: string): Promise<Ind
 }
 
 /** Resumo consolidado */
-export async function getDashboardSummary(parceiroId: number): Promise<DashboardSummary> {
+export async function getDashboardSummary(parceiroId: number, parceiroEmail?: string): Promise<DashboardSummary> {
   const imoveis = await getDashboardImoveis(parceiroId)
   const evolucao = await getDashboardEvolucaoMensal(parceiroId)
+
+  // Buscar indicações do portal (seemailfornecido)
+  let indicacoesPortal = 0
+  if (parceiroEmail) {
+    const portalIndicacoes = await getIndicacoesPendentes(parceiroEmail)
+    indicacoesPortal = portalIndicacoes.length
+  }
 
   const imoveisAtivos = imoveis.filter(i => i.prop_status === 'Active')
   const comissaoTotal = imoveis.reduce((sum, i) => sum + i.comissao_12m, 0)
   const mesesComReceita = evolucao.filter(e => e.comissao_mes > 0).length
 
+  // Total = imóveis do Nekt + indicações do portal
+  const totalIndicacoes = imoveis.length + indicacoesPortal
+
   return {
-    total_indicacoes: imoveis.length,
+    total_indicacoes: totalIndicacoes,
     indicacoes_won: imoveis.length,
     indicacoes_lost: 0,
-    indicacoes_in_progress: 0,
+    indicacoes_in_progress: indicacoesPortal,
     imoveis_ativos: imoveisAtivos.length,
     comissao_12m_estimada: comissaoTotal,
     media_comissao_mensal: mesesComReceita > 0 ? comissaoTotal / mesesComReceita : 0,
