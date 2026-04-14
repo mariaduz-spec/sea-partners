@@ -4,15 +4,12 @@ import { getPartnerForCurrentUser } from '@/lib/partner'
 import {
   getDashboardSummary,
   getDashboardEvolucaoMensal,
-  getExtratoMensalPorImovel,
   getWithdrawals,
   aggregatePaymentStats,
-  groupExtratoByMes,
   formatBRL,
   formatBRLCompact,
 } from '@/lib/queries'
 import ChatPanel from '@/app/dashboard/chat-panel'
-import PaymentsHistory from '@/app/dashboard/payments-history'
 import DashboardShell from '@/components/dashboard-shell'
 import { Wallet, MailQuestion, Coins, Receipt, Banknote, ArrowDownCircle, CheckCircle, XCircle, Clock } from 'lucide-react'
 
@@ -49,15 +46,13 @@ export default async function PagamentosPage() {
     displayName = partner.display_name
   }
 
-  const [summary, evolucao, extrato, { withdrawals, stats: withdrawStats }] = await Promise.all([
+  const [summary, evolucao, { withdrawals, stats: withdrawStats }] = await Promise.all([
     getDashboardSummary(partnerId),
     getDashboardEvolucaoMensal(partnerId),
-    getExtratoMensalPorImovel(partnerId),
     getWithdrawals(partnerId),
   ])
 
   const stats = aggregatePaymentStats(evolucao)
-  const extratoGrouped = groupExtratoByMes(extrato)
 
   return (
     <DashboardShell email={userEmail} partnerName={displayName} active="pagamentos">
@@ -73,19 +68,6 @@ export default async function PagamentosPage() {
         <MetricCard icon={<Coins size={18} />} label="Total gerado" value={formatBRLCompact(stats.total_gerado)} sub={`${stats.meses_com_receita} mês(es) com receita`} tone="coral" />
         <MetricCard icon={<Receipt size={18} />} label="Meses" value={String(stats.meses_com_receita)} sub={`de ${stats.count_meses} meses ativos`} tone="muted" />
         <MetricCard icon={<Wallet size={18} />} label="Saques" value={formatBRLCompact(withdrawStats.total_withdrawn)} sub={`${withdrawStats.count_withdrawn} saque(s) realizado(s)`} tone="success" />
-      </div>
-
-      <div className="rounded-xl p-6 mb-6" style={{ background: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
-        <div className="flex items-start gap-3 mb-4">
-          <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg" style={{ background: 'var(--color-coral-light)', color: 'var(--color-coral)' }}>
-            <Wallet size={18} />
-          </div>
-          <div>
-            <h4>Receita por mês</h4>
-            <p className="detail-reg mt-1">{evolucao.filter((m) => m.comissao_mes > 0).length} meses com receita</p>
-          </div>
-        </div>
-        <PaymentsHistory meses={evolucao} extratoPorMes={extratoGrouped} />
       </div>
 
       {withdrawals.length > 0 && (
