@@ -17,7 +17,7 @@ export default function DashboardShell({
 }: {
   email: string
   partnerName?: string
-  active: 'visao-geral' | 'pagamentos'
+  active: 'visao geral' | 'pagamentos' | 'indicacoes'
   children: React.ReactNode
 }) {
   return (
@@ -70,8 +70,11 @@ export default function DashboardShell({
           className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center gap-1"
           aria-label="Navegação principal"
         >
-          <NavLink href="/dashboard" active={active === 'visao-geral'}>
+          <NavLink href="/dashboard" active={active === 'visao geral'}>
             Visão geral
+          </NavLink>
+          <NavLink href="/indicacoes" active={active === 'indicacoes'}>
+            Indicações
           </NavLink>
           <NavLink href="/pagamentos" active={active === 'pagamentos'}>
             Pagamentos

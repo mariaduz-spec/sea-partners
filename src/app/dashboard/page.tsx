@@ -41,7 +41,7 @@ export default async function DashboardPage() {
 
   if (!partner) {
     return (
-      <DashboardShell email={user.email ?? ''} active="visao-geral">
+      <DashboardShell email={user.email ?? ''} active="visao geral">
         <EmptyPartner email={user.email ?? ''} />
         <ChatPanel />
       </DashboardShell>
@@ -62,7 +62,7 @@ export default async function DashboardPage() {
     <DashboardShell
       email={user.email ?? ''}
       partnerName={partner.display_name}
-      active="visao-geral"
+      active="visao geral"
     >
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
