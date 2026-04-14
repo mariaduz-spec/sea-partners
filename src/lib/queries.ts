@@ -216,7 +216,8 @@ export type WithdrawStats = {
  * Mapeamento conhecido: maria.duz@seazone.com.br -> withdraw partner_id = 324
  */
 export async function getWithdrawals(parceiroId: number): Promise<{ withdrawals: Withdrawal[]; stats: WithdrawStats }> {
-  // Mapeamento de partner_id do mapping para partner_id nos saques
+  // Mapeamento: Some partners use different ID in withdraws table
+  // 17818 (Katia) -> 324, others use direct mapping
   const withdrawPartnerId = parceiroId === 17818 ? 324 : parceiroId
 
   const sql = `
