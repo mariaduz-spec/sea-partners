@@ -90,7 +90,7 @@ export default async function DashboardPage() {
 
       <div className="rounded-xl p-6 mb-6" style={{ background: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
         <h4>Evolução mensal</h4>
-        <p className="detail-reg mt-1 mb-4">Receita dos imóveis por mês</p>
+        <p className="detail-reg mt-1 mb-4">Receita acumulada por mês</p>
         <CommissionChart data={evolucao} />
       </div>
 
