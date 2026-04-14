@@ -4,7 +4,6 @@ import { getPartnerForCurrentUser } from '@/lib/partner'
 import {
   getDashboardSummary,
   getDashboardImoveis,
-  getDashboardEvolucaoMensal,
   formatBRL,
   formatBRLCompact,
 } from '@/lib/queries'
@@ -51,8 +50,6 @@ export default async function DashboardPage() {
 
   const imoveisAtivos = imoveis.filter((i) => i.prop_status === 'Active')
   const imoveisInativos = imoveis.filter((i) => i.prop_status !== 'Active')
-  const proximos = evolucao.filter((m) => m.status === 'a_pagar' || m.status === 'em_apuracao')
-  const totalProximo = proximos.reduce((sum, m) => sum + m.comissao_mes, 0)
 
   return (
     <DashboardShell
@@ -74,15 +71,6 @@ export default async function DashboardPage() {
         <MetricCard icon={<TrendingUp size={20} />} label="Média mensal" value={formatBRLCompact(summary.media_comissao_mensal)} sub="média por mês ativo" />
         <MetricCard icon={<Wallet size={20} />} label="Indicações" value={String(summary.total_indicacoes)} sub={`${summary.indicacoes_won} ganha${summary.indicacoes_won === 1 ? '' : 's'} · ${summary.indicacoes_in_progress} em curso`} />
       </div>
-
-      {totalProximo > 0 && (
-        <div className="rounded-xl p-4 mb-6" style={{ background: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
-          <div className="flex items-center justify-between">
-            <div><p className="body">Próximos pagamentos</p><p className="detail-reg mt-1">{proximos.length} mês(es) pendente(s)</p></div>
-            <p className="metric" style={{ color: 'var(--color-coral)' }}>{formatBRL(totalProximo)}</p>
-          </div>
-        </div>
-      )}
 
       <div className="rounded-xl p-6 mb-6" style={{ background: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
         <h4>Evolução mensal</h4>

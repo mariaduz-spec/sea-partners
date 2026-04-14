@@ -22,49 +22,12 @@ export { formatBRL, formatBRLCompact, describeCommission } from './format'
  * Cadeia: sapron_public_partners_indications_property → property_property → faturamento
  */
 
-// Status de pagamento por mês
-// Comissão do mês M é paga no dia 10 do mês M+1
+// Status de pagamento removido - exibição depende do pedido de saque real
 export function computePaymentStatus(
-  mesAno: string,
-  today: Date = new Date()
+  _mesAno: string,
+  _today: Date = new Date()
 ): { status: PaymentStatus; data_pagamento: Date | null; label_status: string } {
-  const match = /^(\d{2})\/(\d{4})$/.exec(mesAno.trim())
-  if (!match) {
-    return { status: 'em_apuracao', data_pagamento: null, label_status: 'Indeterminado' }
-  }
-  const mm = Number(match[1])
-  const yyyy = Number(match[2])
-
-  // Data do pagamento = dia 10 do mês seguinte
-  const paymentMonth = mm === 12 ? 1 : mm + 1
-  const paymentYear = mm === 12 ? yyyy + 1 : yyyy
-  const dataPagamento = new Date(Date.UTC(paymentYear, paymentMonth - 1, 10, 10, 0, 0))
-
-  // Hoje em UTC (comparação em dias)
-  const todayCutoff = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getDate(), 10, 0, 0))
-
-  // Mês atual = sempre em apuração (pagamento é no mês que vem)
-  const todayMonth = today.getUTCMonth() + 1
-  const todayYear = today.getUTCFullYear()
-  const isCurrent = mm === todayMonth && yyyy === todayYear
-
-  if (isCurrent) return { status: 'em_apuracao', data_pagamento: null, label_status: 'Em apuração' }
-
-  // Se a data de pagamento já passou, está pago
-  if (dataPagamento <= todayCutoff) {
-    return {
-      status: 'pago',
-      data_pagamento: dataPagamento,
-      label_status: `Pago em ${dataPagamento.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })}`,
-    }
-  }
-
-  // Pagamento ainda não foi feito
-  return {
-    status: 'a_pagar',
-    data_pagamento: dataPagamento,
-    label_status: `A pagar até ${dataPagamento.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`,
-  }
+  return { status: 'em_apuracao', data_pagamento: null, label_status: 'Em apuração' }
 }
 
 /** Resumo consolidado */
