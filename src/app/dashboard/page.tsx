@@ -9,6 +9,7 @@ import {
   formatBRLCompact,
 } from '@/lib/queries'
 import CommissionChart from './commission-chart'
+import ImovelSelector from './imovel-selector'
 import ChatPanel from './chat-panel'
 import NewIndicationDialog from './new-indication-dialog'
 import DashboardShell from '@/components/dashboard-shell'
@@ -82,17 +83,10 @@ export default async function DashboardPage() {
       <div className="rounded-xl p-6 mb-6" style={{ background: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
         <div className="flex items-start gap-3 mb-4">
           <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg" style={{ background: 'var(--color-coral-light)', color: 'var(--color-coral)' }}><Building2 size={18} /></div>
-          <div><h4>Seus imóveis ({imoveis.length} indicações)</h4><p className="detail-reg mt-1">Tipo de comissão e receita gerada</p></div>
+          <div><h4>Seus imóveis ({imoveis.length})</h4><p className="detail-reg mt-1">Selecione um imóvel para ver os detalhes</p></div>
         </div>
-        <ImoveisTable imoveis={imoveisAtivos} emptyLabel="Nenhum imóvel ativo." />
+        <ImovelSelector imoveisAtivos={imoveisAtivos} imoveisInativos={imoveisInativos} />
       </div>
-
-      {imoveisInativos.length > 0 && (
-        <details className="rounded-xl p-6" style={{ background: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
-          <summary className="body cursor-pointer" style={{ color: 'var(--color-muted-fg)' }}>Imóveis inativos ({imoveisInativos.length})</summary>
-          <div className="mt-4"><ImoveisTable imoveis={imoveisInativos} emptyLabel="—" /></div>
-        </details>
-      )}
 
       <ChatPanel />
     </DashboardShell>
