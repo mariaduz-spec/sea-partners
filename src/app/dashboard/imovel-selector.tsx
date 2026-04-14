@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { formatBRL } from '@/lib/format'
-import { Building2, CheckCircle, Clock } from 'lucide-react'
+import { Building2, CheckCircle, Clock, Loader2 } from 'lucide-react'
 
 type Imovel = {
   indication_id: number
@@ -15,6 +15,12 @@ type Imovel = {
   n_meses_ativos: number
 }
 
+type MesEvolucao = {
+  mes_ano: string
+  receita: string
+  comissao: string
+}
+
 type Props = {
   imoveisAtivos: Imovel[]
   imoveisInativos: Imovel[]
@@ -23,11 +29,37 @@ type Props = {
 export default function ImovelSelector({ imoveisAtivos, imoveisInativos }: Props) {
   const allImoveis = [...imoveisAtivos, ...imoveisInativos]
   const [selectedCode, setSelectedCode] = useState<string>('')
+  const [evolucao, setEvolucao] = useState<MesEvolucao[]>([])
+  const [loading, setLoading] = useState(false)
 
-  // Debug: log data received
+  // Find selected object
+  const selected = allImoveis.find(i => i.code === selectedCode) || null
+
+  // Fetch evolution when property_id changes
+  const propertyId = selected?.property_id
+
   useEffect(() => {
-    console.log('ImovelSelector received:', { imoveisAtivos, imoveisInativos })
-  }, [imoveisAtivos, imoveisInativos])
+    if (!propertyId) {
+      setEvolucao([])
+      return
+    }
+
+    async function fetchEvolucao() {
+      setLoading(true)
+      try {
+        const res = await fetch(`/api/imovel/${propertyId}`)
+        const data = await res.json()
+        setEvolucao(data.meses || [])
+      } catch (err) {
+        console.error('Failed to fetch evolution:', err)
+        setEvolucao([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchEvolucao()
+  }, [propertyId])
 
   if (allImoveis.length === 0) {
     return (
@@ -37,18 +69,12 @@ export default function ImovelSelector({ imoveisAtivos, imoveisInativos }: Props
     )
   }
 
-  // Find selected object from code
-  const selected = allImoveis.find(i => i.code === selectedCode) || null
-
   return (
     <div>
       {/* Dropdown */}
       <select
         value={selectedCode}
-        onChange={(e) => {
-          console.log('onChange value:', e.target.value)
-          setSelectedCode(e.target.value)
-        }}
+        onChange={(e) => setSelectedCode(e.target.value)}
         className="w-full rounded-lg px-3 py-2 border"
         style={{
           marginBottom: 16,
@@ -79,12 +105,18 @@ export default function ImovelSelector({ imoveisAtivos, imoveisInativos }: Props
       </select>
 
       {/* Detail card */}
-      {selected && <ImovelDetail imovel={selected} />}
+      {selected && (
+        <ImovelDetail imovel={selected} evolucao={evolucao} loading={loading} />
+      )}
     </div>
   )
 }
 
-function ImovelDetail({ imovel }: { imovel: Imovel }) {
+function ImovelDetail({ imovel, evolucao, loading }: {
+  imovel: Imovel
+  evolucao: MesEvolucao[]
+  loading: boolean
+}) {
   const isActive = imovel.prop_status === 'Active'
 
   return (
@@ -117,7 +149,7 @@ function ImovelDetail({ imovel }: { imovel: Imovel }) {
       </div>
 
       {/* Métricas */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-4 mb-4">
         <div
           className="rounded-lg p-4"
           style={{ background: 'var(--color-surface)' }}
@@ -145,6 +177,38 @@ function ImovelDetail({ imovel }: { imovel: Imovel }) {
             {imovel.n_meses_ativos}
           </p>
         </div>
+      </div>
+
+      {/* Evolução mensal */}
+      <div>
+        <p className="detail-reg mb-2" style={{ color: 'var(--color-muted-fg)' }}>
+          Receita por mês
+        </p>
+        {loading ? (
+          <div className="flex items-center justify-center py-4">
+            <Loader2 size={16} className="animate-spin" style={{ color: 'var(--color-muted-fg)' }} />
+          </div>
+        ) : evolucao.length > 0 ? (
+          <div className="rounded-lg overflow-hidden" style={{ border: '1px solid var(--color-border)' }}>
+            {evolucao.map((m, idx) => (
+              <div
+                key={idx}
+                className="flex items-center justify-between py-2 px-3"
+                style={{
+                  borderBottom: idx < evolucao.length - 1 ? '1px solid var(--color-border)' : 'none',
+                  background: idx % 2 === 0 ? 'var(--color-surface)' : 'transparent',
+                }}
+              >
+                <span className="body" style={{ color: 'var(--color-foreground)' }}>{m.mes_ano}</span>
+                <span className="body text-right" style={{ color: 'var(--color-coral)' }}>{m.comissao}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="body-reg text-center py-4" style={{ color: 'var(--color-muted-fg)' }}>
+            Sem receita registrada.
+          </p>
+        )}
       </div>
     </div>
   )

@@ -131,6 +131,29 @@ FROM comissao ORDER BY comissao_12m DESC LIMIT 80`
   }))
 }
 
+/** Evolução mensal por imóvel específico */
+export async function getImovelEvolucaoMensal(propertyId: number): Promise<DashboardMes[]> {
+  const sql = `
+SELECT f.mes_ano, try(date_parse(f.mes_ano, '%m/%Y')) AS mes_date,
+  COALESCE(TRY_CAST(REPLACE(REPLACE(REPLACE(f.receita_reservas, 'R$ ', ''), '.', ''), ',', '.') AS DOUBLE), 0) AS receita
+FROM nekt_service.google_sheets_faturamento_por_imovel_por_franquia_anfitriao_imovel f
+WHERE f.apto_id = '${propertyId}'
+  AND try(date_parse(f.mes_ano, '%m/%Y')) IS NOT NULL
+ORDER BY mes_date ASC`
+
+  const rows = await queryNekt<Record<string, string>>(sql)
+  return rows.map((r) => ({
+    mes_ano: r.mes_ano ?? '',
+    mes_date: r.mes_date ? new Date(r.mes_date) : null,
+    receita_imoveis: Number(r.receita ?? 0),
+    comissao_mes: Number(r.receita ?? 0) * 0.02,
+    n_imoveis_ativos: Number(r.receita ?? 0) > 0 ? 1 : 0,
+    status: 'em_apuracao' as const,
+    data_pagamento: null,
+    label_status: 'Em apuração',
+  }))
+}
+
 /** Evolução mensal - UNION de indications_property + base_pagamento */
 export async function getDashboardEvolucaoMensal(parceiroId: number): Promise<DashboardMes[]> {
   const sql = `
