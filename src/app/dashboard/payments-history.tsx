@@ -35,7 +35,7 @@ export default function PaymentsHistory({ meses, extratoPorMes }: Props) {
     <div>
       {/* Header */}
       <div
-        className="hidden sm:grid grid-cols-[auto_1fr_auto_auto] gap-3 sm:gap-4 items-center py-3 eyebrow"
+        className="grid grid-cols-[auto_1fr_auto] gap-4 items-center py-3 eyebrow"
         style={{
           borderBottom: '1px solid var(--color-border)',
           color: 'var(--color-muted-fg)',
@@ -44,7 +44,6 @@ export default function PaymentsHistory({ meses, extratoPorMes }: Props) {
         <span className="w-4" aria-hidden />
         <span>Mês</span>
         <span className="text-right">Comissão</span>
-        <span className="text-right">Status</span>
       </div>
 
       {/* Linhas */}
@@ -80,7 +79,7 @@ function MesRow({
         type="button"
         onClick={() => setOpen(!open)}
         aria-expanded={open}
-        className="w-full grid grid-cols-[auto_1fr_auto] sm:grid-cols-[auto_1fr_auto_auto] gap-3 sm:gap-4 items-center py-3 text-left transition cursor-pointer"
+        className="w-full grid grid-cols-[auto_1fr_auto] gap-4 items-center py-3 text-left transition cursor-pointer"
         style={{ background: 'transparent' }}
         onMouseEnter={(e) =>
           (e.currentTarget.style.background = 'var(--color-muted)')
@@ -106,13 +105,7 @@ function MesRow({
         >
           {temReceita ? formatBRL(mes.comissao_mes) : '—'}
         </span>
-        <span
-          className="detail-reg text-right hidden sm:block"
-          style={{ color: 'var(--color-muted-fg)' }}
-        >
-          {mes.label_status}
-        </span>
-      </button>
+              </button>
 
       {open && extrato.length > 0 && (
         <div

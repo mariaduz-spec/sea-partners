@@ -9,8 +9,6 @@ type Props = {
     comissao_mes: number
     receita_imoveis: number
     n_imoveis_ativos: number
-    status: string
-    label_status: string
   }>
 }
 
@@ -35,7 +33,6 @@ export default function CommissionChart({ data }: Props) {
     comissao: d.comissao_mes,
     receita: d.receita_imoveis,
     imoveis: d.n_imoveis_ativos,
-    status: d.label_status,
   }))
 
   return (

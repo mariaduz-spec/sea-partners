@@ -4,6 +4,7 @@ import { getPartnerForCurrentUser } from '@/lib/partner'
 import {
   getDashboardSummary,
   getDashboardImoveis,
+  getDashboardEvolucaoMensal,
   formatBRL,
   formatBRLCompact,
 } from '@/lib/queries'
