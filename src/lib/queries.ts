@@ -103,7 +103,7 @@ fat AS (
     f.apto_id,
     COALESCE(TRY_CAST(REPLACE(REPLACE(REPLACE(f.receita_reservas, 'R$ ', ''), '.', ''), ',', '.') AS DOUBLE), 0) AS receita
   FROM nekt_service.google_sheets_faturamento_por_imovel_por_franquia_anfitriao_imovel f
-  WHERE try(date_parse(f.mes_ano, '%m/%Y')) >= date_add('month', -12, date_trunc('month', current_date))
+  WHERE try(date_parse(f.mes_ano, '%m/%Y')) IS NOT NULL
 ),
 comissao AS (
   SELECT
@@ -164,7 +164,7 @@ fat AS (
     try(date_parse(f.mes_ano, '%m/%Y')) AS mes_date,
     COALESCE(TRY_CAST(REPLACE(REPLACE(REPLACE(f.receita_reservas, 'R$ ', ''), '.', ''), ',', '.') AS DOUBLE), 0) AS receita
   FROM nekt_service.google_sheets_faturamento_por_imovel_por_franquia_anfitriao_imovel f
-  WHERE try(date_parse(f.mes_ano, '%m/%Y')) >= date_add('month', -12, date_trunc('month', current_date))
+  WHERE try(date_parse(f.mes_ano, '%m/%Y')) IS NOT NULL
 )
 SELECT
   fat.mes_ano,
