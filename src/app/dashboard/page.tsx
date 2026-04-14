@@ -5,7 +5,6 @@ import {
   getDashboardSummary,
   getDashboardImoveis,
   getDashboardEvolucaoMensal,
-  getIndicacoesPendentes,
   formatBRL,
   formatBRLCompact,
 } from '@/lib/queries'
@@ -19,10 +18,6 @@ import {
   MailQuestion,
   BadgeDollarSign,
   TrendingUp,
-  UserPlus,
-  Clock,
-  CheckCircle,
-  XCircle,
 } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -48,11 +43,10 @@ export default async function DashboardPage() {
     )
   }
 
-  const [summary, imoveis, evolucao, indicacoes] = await Promise.all([
+  const [summary, imoveis, evolucao] = await Promise.all([
     getDashboardSummary(partner.parceiro_id),
     getDashboardImoveis(partner.parceiro_id),
     getDashboardEvolucaoMensal(partner.parceiro_id),
-    getIndicacoesPendentes(user.email ?? ''),
   ])
 
   const imoveisAtivos = imoveis.filter((i) => i.prop_status === 'Active')
@@ -98,16 +92,6 @@ export default async function DashboardPage() {
           <summary className="body cursor-pointer" style={{ color: 'var(--color-muted-fg)' }}>Imóveis inativos ({imoveisInativos.length})</summary>
           <div className="mt-4"><ImoveisTable imoveis={imoveisInativos} emptyLabel="—" /></div>
         </details>
-      )}
-
-      {indicacoes.length > 0 && (
-        <div className="rounded-xl p-6" style={{ background: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
-          <div className="flex items-start gap-3 mb-4">
-            <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg" style={{ background: 'var(--color-coral-light)', color: 'var(--color-coral)' }}><UserPlus size={18} /></div>
-            <div><h4>Suas indicações ({indicacoes.length})</h4><p className="detail-reg mt-1">Clientes indicados por você</p></div>
-          </div>
-          <IndicacoesTable indicacoes={indicacoes} />
-        </div>
       )}
 
       <ChatPanel />
@@ -172,50 +156,6 @@ function StatusPill({ status }: { status: string }) {
   return (
     <span className="detail inline-block px-2.5 py-1 rounded-full" style={isActive ? { background: 'color-mix(in oklab, var(--color-success) 18%, transparent)', color: 'var(--color-success)' } : { background: 'var(--color-muted)', color: 'var(--color-muted-fg)' }}>
       {status || '—'}
-    </span>
-  )
-}
-
-function IndicacoesTable({ indicacoes }: { indicacoes: Array<{ id: string; nome_indicado: string; telefone: string; email_indicado: string | null; endereco_imovel: string | null; status: string; created_at: string }> }) {
-  if (indicacoes.length === 0) return null
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full">
-        <thead><tr style={{ borderBottom: '1px solid var(--color-border)' }}>
-          <th className="eyebrow text-left py-3" style={{ color: 'var(--color-muted-fg)' }}>Cliente</th>
-          <th className="eyebrow text-left py-3" style={{ color: 'var(--color-muted-fg)' }}>Telefone</th>
-          <th className="eyebrow text-left py-3" style={{ color: 'var(--color-muted-fg)' }}>Imóvel</th>
-          <th className="eyebrow text-left py-3" style={{ color: 'var(--color-muted-fg)' }}>Status</th>
-          <th className="eyebrow text-right py-3" style={{ color: 'var(--color-muted-fg)' }}>Data</th>
-        </tr></thead>
-        <tbody>
-          {indicacoes.map((i) => (
-            <tr key={i.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
-              <td className="body py-3" style={{ color: 'var(--color-foreground)' }}>{i.nome_indicado}</td>
-              <td className="body py-3" style={{ color: 'var(--color-muted-fg)' }}>{i.telefone}</td>
-              <td className="body py-3" style={{ color: 'var(--color-muted-fg)' }}>{i.endereco_imovel || '—'}</td>
-              <td className="py-3"><IndicacaoStatusPill status={i.status} /></td>
-              <td className="body-reg py-3 text-right" style={{ color: 'var(--color-muted-fg)' }}>{new Date(i.created_at).toLocaleDateString('pt-BR')}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
-}
-
-function IndicacaoStatusPill({ status }: { status: string }) {
-  const configs: Record<string, { bg: string; color: string; icon: React.ReactNode; label: string }> = {
-    aguardando_sync: { bg: 'color-mix(in oklab, #f59e0b 15%, transparent)', color: '#f59e0b', icon: <Clock size={12} />, label: 'Aguardando' },
-    sincronizado: { bg: 'color-mix(in oklab, var(--color-navy) 15%, transparent)', color: 'var(--color-navy)', icon: <CheckCircle size={12} />, label: 'Sincronizado' },
-    convertido: { bg: 'color-mix(in oklab, var(--color-success) 18%, transparent)', color: 'var(--color-success)', icon: <CheckCircle size={12} />, label: 'Convertido' },
-    perdido: { bg: 'var(--color-muted)', color: 'var(--color-muted-fg)', icon: <XCircle size={12} />, label: 'Perdido' },
-  }
-  const cfg = configs[status] || configs.aguardando_sync
-  return (
-    <span className="detail inline-flex items-center gap-1 px-2.5 py-1 rounded-full" style={{ background: cfg.bg, color: cfg.color }}>
-      {cfg.icon}
-      {cfg.label}
     </span>
   )
 }
