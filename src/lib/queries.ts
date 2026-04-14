@@ -1,5 +1,19 @@
 import 'server-only'
 import { queryNekt } from './nekt'
+import { createSupabaseServerClient } from './supabase'
+
+export type IndicacaoPendente = {
+  id: string
+  parceiro_id: number
+  nome_indicado: string
+  telefone: string
+  email_indicado: string | null
+  endereco_imovel: string | null
+  observacoes: string | null
+  status: string
+  pipedrive_deal_id: number | null
+  created_at: string
+}
 import type {
   DashboardSummary,
   DashboardImovel,
@@ -28,6 +42,23 @@ export function computePaymentStatus(
   _today: Date = new Date()
 ): { status: PaymentStatus; data_pagamento: Date | null; label_status: string } {
   return { status: 'em_apuracao', data_pagamento: null, label_status: 'Em apuração' }
+}
+
+/** Indicações de imóveis feitas pelo parceiro via portal */
+export async function getIndicacoesPendentes(parceiroEmail: string): Promise<IndicacaoPendente[]> {
+  const supabase = await createSupabaseServerClient()
+  const { data, error } = await supabase
+    .from('indicacoes_pendentes')
+    .select('*')
+    .eq('parceiro_email', parceiroEmail)
+    .order('created_at', { ascending: false })
+    .limit(20)
+
+  if (error) {
+    console.error('[getIndicacoesPendentes] error:', error)
+    return []
+  }
+  return data || []
 }
 
 /** Resumo consolidado */
