@@ -11,7 +11,6 @@ import {
 import CommissionChart from './commission-chart'
 import ImovelSelector from './imovel-selector'
 import ChatPanel from './chat-panel'
-import NewIndicationDialog from './new-indication-dialog'
 import DashboardShell from '@/components/dashboard-shell'
 import {
   Wallet,
@@ -59,13 +58,10 @@ export default async function DashboardPage() {
       partnerName={partner.display_name}
       active="visao geral"
     >
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div>
-          <span className="eyebrow" style={{ color: 'var(--color-coral)' }}>Olá 👋</span>
-          <h3 className="mt-1" style={{ color: 'var(--color-foreground)' }}>{partner.display_name}</h3>
-          <p className="body-reg mt-1" style={{ color: 'var(--color-muted-fg)' }}>Suas indicações e a receita que você gera.</p>
-        </div>
-        <div className="shrink-0 mt-1"><NewIndicationDialog /></div>
+      <div className="mb-6">
+        <span className="eyebrow" style={{ color: 'var(--color-coral)' }}>Olá 👋</span>
+        <h3 className="mt-1" style={{ color: 'var(--color-foreground)' }}>{partner.display_name}</h3>
+        <p className="body-reg mt-1" style={{ color: 'var(--color-muted-fg)' }}>Suas indicações e a receita que você gera.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
