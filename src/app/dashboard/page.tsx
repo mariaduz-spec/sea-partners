@@ -6,7 +6,7 @@ import {
   getDashboardImoveis,
   getDashboardEvolucaoMensal,
   getExtratoMensalPorImovel,
-  groupExtratoByCode,
+  groupExtratoByMes,
   formatBRL,
   formatBRLCompact,
 } from '@/lib/queries'
