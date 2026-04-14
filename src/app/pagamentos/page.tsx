@@ -59,11 +59,6 @@ export default async function PagamentosPage() {
   const stats = aggregatePaymentStats(evolucao)
   const extratoGrouped = groupExtratoByMes(extrato)
 
-  const imoveisPorComissao = extrato
-    .filter((e) => e.comissao > 0)
-    .sort((a, b) => b.comissao - a.comissao)
-    .slice(0, 6)
-
   return (
     <DashboardShell email={userEmail} partnerName={displayName} active="pagamentos">
       <div className="mb-6">
@@ -148,31 +143,6 @@ export default async function PagamentosPage() {
                 </div>
               )
             })}
-          </div>
-        </div>
-      )}
-
-      {imoveisPorComissao.length > 0 && (
-        <div className="rounded-xl p-6" style={{ background: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
-          <div className="flex items-start gap-3 mb-4">
-            <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg" style={{ background: 'var(--color-coral-light)', color: 'var(--color-coral)' }}>
-              <Coins size={18} />
-            </div>
-            <div>
-              <h4>Top imóveis (receita 12m)</h4>
-              <p className="detail-reg mt-1">Os {imoveisPorComissao.length} imóveis que mais geraram receita</p>
-            </div>
-          </div>
-          <div className="space-y-3">
-            {imoveisPorComissao.map((imovel) => (
-              <div key={imovel.code} className="flex items-center justify-between py-2" style={{ borderBottom: '1px solid var(--color-border)' }}>
-                <div>
-                  <p className="body font-mono" style={{ color: 'var(--color-foreground)' }}>{imovel.code}</p>
-                  <p className="detail-reg" style={{ color: 'var(--color-muted-fg)' }}>{imovel.commission_type}</p>
-                </div>
-                <p className="body" style={{ color: 'var(--color-coral)' }}>{formatBRL(imovel.comissao)}</p>
-              </div>
-            ))}
           </div>
         </div>
       )}
