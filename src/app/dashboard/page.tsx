@@ -5,8 +5,6 @@ import {
   getDashboardSummary,
   getDashboardImoveis,
   getDashboardEvolucaoMensal,
-  getExtratoMensalPorImovel,
-  groupExtratoByMes,
   formatBRL,
   formatBRLCompact,
 } from '@/lib/queries'
@@ -45,14 +43,12 @@ export default async function DashboardPage() {
     )
   }
 
-  const [summary, imoveis, evolucao, extrato] = await Promise.all([
+  const [summary, imoveis, evolucao] = await Promise.all([
     getDashboardSummary(partner.parceiro_id),
     getDashboardImoveis(partner.parceiro_id),
     getDashboardEvolucaoMensal(partner.parceiro_id),
-    getExtratoMensalPorImovel(partner.parceiro_id),
   ])
 
-  const extratoPorCodigo = groupExtratoByCode(extrato)
   const imoveisAtivos = imoveis.filter((i) => i.prop_status === 'Active')
   const imoveisInativos = imoveis.filter((i) => i.prop_status !== 'Active')
   const proximos = evolucao.filter((m) => m.status === 'a_pagar' || m.status === 'em_apuracao')
