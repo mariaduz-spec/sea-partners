@@ -70,9 +70,9 @@ export default async function PagamentosPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <MetricCard icon={<Coins size={18} />} label="Total pago" value={formatBRLCompact(stats.total_pago)} sub={`${stats.count_pago} mês(es) pago(s)`} tone="coral" />
-        <MetricCard icon={<Receipt size={18} />} label="A pagar" value={formatBRLCompact(stats.total_a_pagar)} sub={`${stats.count_a_pagar} mês(es) pendente(s)`} tone="muted" />
-        <MetricCard icon={<Wallet size={18} />} label="Em apuração" value={formatBRLCompact(stats.total_em_apuracao)} sub={`${stats.count_em_apuracao} mês(es)`} tone="success" />
+        <MetricCard icon={<Coins size={18} />} label="Total gerado" value={formatBRLCompact(stats.total_gerado)} sub={`${stats.meses_com_receita} mês(es) com receita`} tone="coral" />
+        <MetricCard icon={<Receipt size={18} />} label="Meses" value={String(stats.meses_com_receita)} sub={`de ${stats.count_meses} meses ativos`} tone="muted" />
+        <MetricCard icon={<Wallet size={18} />} label="Saques" value={formatBRLCompact(withdrawStats.total_withdrawn)} sub={`${withdrawStats.count_withdrawn} saque(s) realizado(s)`} tone="success" />
       </div>
 
       <div className="rounded-xl p-6 mb-6" style={{ background: 'var(--color-background)', border: '1px solid var(--color-border)' }}>

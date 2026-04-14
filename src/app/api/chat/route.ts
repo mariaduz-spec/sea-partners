@@ -80,9 +80,7 @@ function buildContexto(
 - Media mensal: ${formatBRL(summary.media_comissao_mensal)} (${summary.meses_com_receita} meses com receita)
 
 ## Status pagamentos
-- Pago: ${formatBRL(stats.total_pago)} (${stats.count_pago} meses)
-- A pagar: ${formatBRL(stats.total_a_pagar)} (${stats.count_a_pagar} meses)
-- Em apuracao: ${formatBRL(stats.total_em_apuracao)} (${stats.count_em_apuracao} meses)
+- Total gerado: ${formatBRL(stats.total_gerado)} (${stats.meses_com_receita} meses com receita)
 
 ## Imoveis por tipo
 - Recorrente: ${imoveisRecurring.length}

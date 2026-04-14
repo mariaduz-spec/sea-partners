@@ -260,11 +260,12 @@ export function groupExtratoByMes(
 }
 
 export function aggregatePaymentStats(meses: DashboardMes[]) {
-  const stats = { total_pago: 0, total_a_pagar: 0, total_em_apuracao: 0, count_pago: 0, count_a_pagar: 0, count_em_apuracao: 0 }
-  for (const m of meses) {
-    if (m.status === 'pago') { stats.total_pago += m.comissao_mes; stats.count_pago++ }
-    else if (m.status === 'a_pagar') { stats.total_a_pagar += m.comissao_mes; stats.count_a_pagar++ }
-    else { stats.total_em_apuracao += m.comissao_mes; stats.count_em_apuracao++ }
+  // Sem lógica de status - apenas soma toda a comissão gerada
+  const total_gerado = meses.reduce((sum, m) => sum + m.comissao_mes, 0)
+  const meses_com_receita = meses.filter(m => m.comissao_mes > 0).length
+  return {
+    total_gerado,
+    meses_com_receita,
+    count_meses: meses.length,
   }
-  return stats
 }
