@@ -183,7 +183,7 @@ export default function LoginPage() {
               Sem senha. Enviamos um link pro seu email.
             </p>
 
-            {process.env.NODE_ENV === 'development' && (
+            {(process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_ENABLE_DEV === 'true') && (
               <div className="mt-4 pt-4" style={{ borderTop: '1px dashed var(--color-border)' }}>
                 <button
                   type="button"
