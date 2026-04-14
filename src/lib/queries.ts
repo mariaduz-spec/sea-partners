@@ -36,6 +36,21 @@ export { formatBRL, formatBRLCompact, describeCommission } from './format'
  * Cadeia: sapron_public_partners_indications_property → property_property → faturamento
  */
 
+/**
+ * Valida e sanitiza partnerId — impede SQL injection through input.
+ * O partnerId vem do mapping do banco, mas validamos por segurança.
+ */
+function validatePartnerId(id: number | string | undefined): number {
+  if (id === undefined) {
+    throw new Error('partner_id ausente')
+  }
+  const parsed = typeof id === 'string' ? parseInt(id, 10) : id
+  if (!Number.isFinite(parsed) || !Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error('partner_id invalido')
+  }
+  return parsed
+}
+
 // Status de pagamento removido - exibição depende do pedido de saque real
 export function computePaymentStatus(
   _mesAno: string,
@@ -63,7 +78,8 @@ export async function getIndicacoesPendentes(parceiroEmail: string): Promise<Ind
 
 /** Resumo consolidado */
 export async function getDashboardSummary(parceiroId: number, parceiroEmail?: string): Promise<DashboardSummary> {
-  const imoveis = await getDashboardImoveis(parceiroId)
+  const safeId = validatePartnerId(parceiroId)
+  const imoveis = await getDashboardImoveis(safeId)
   const evolucao = await getDashboardEvolucaoMensal(parceiroId)
 
   // Buscar indicações do portal (seemailfornecido)
@@ -94,6 +110,7 @@ export async function getDashboardSummary(parceiroId: number, parceiroEmail?: st
 
 /** Lista de imóveis - UNION de indications_property + base_pagamento (funciona pros dois) */
 export async function getDashboardImoveis(parceiroId: number): Promise<DashboardImovel[]> {
+  const safeId = validatePartnerId(parceiroId)
   const sql = `
 WITH partner_imoveis AS (
   SELECT DISTINCT TRY_CAST(property_id AS BIGINT) AS property_id
@@ -166,6 +183,7 @@ ORDER BY mes_date ASC`
 
 /** Evolução mensal - UNION de indications_property + base_pagamento */
 export async function getDashboardEvolucaoMensal(parceiroId: number): Promise<DashboardMes[]> {
+  const safeId = validatePartnerId(parceiroId)
   const sql = `
 WITH partner_imoveis AS (
   SELECT DISTINCT TRY_CAST(property_id AS BIGINT) AS property_id
@@ -235,7 +253,8 @@ export type WithdrawStats = {
  * Others use direct partner_id mapping
  */
 export async function getWithdrawals(parceiroId: number): Promise<{ withdrawals: Withdrawal[]; stats: WithdrawStats }> {
-  const withdrawPartnerId = parceiroId === 17818 ? 324 : parceiroId
+  const safeId = validatePartnerId(parceiroId)
+  const withdrawPartnerId = safeId === 17818 ? 324 : safeId
 
   const sql = `
 SELECT

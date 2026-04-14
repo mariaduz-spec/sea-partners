@@ -9,6 +9,7 @@
 :root {
   /* Brand */
   --color-navy: #0C1640;
+  --color-navy-bg: #0C1640;
   --color-navy-hover: #19224F;
   --color-blue: #0D4BD0;
   --color-blue-hover: #0A3BA8;
@@ -68,7 +69,8 @@
   --color-border-strong: #2D3769;
 
   /* Brand em dark: tons levemente ajustados */
-  --color-navy: #0A1240;
+  --color-navy: #FFFFFF;            /* para texto sobre background escuro */
+  --color-navy-bg: #0A1240;        /* para background */
   --color-coral: #F56A67;
   --color-coral-hover: #F78380;
   --color-coral-light: rgba(245, 106, 103, 0.15);
@@ -103,7 +105,15 @@ body {
    ───────────────────────────────────────────── */
 
 h1, .h1 { font-size: 48px; font-weight: 700; line-height: 1.1; letter-spacing: -0.02em; }
-h2, .h2 { font-size: 30px; font-weight: 700; line-height: 1.2; letter-spacing: -0.01em; }
+h2, .h2 { font-size: 30px; font-weight: 700; line-height: 1.2; letter-spacing: -0.01em; color: var(--color-foreground); }
+
+.login-title { color: var(--color-foreground); }
+
+/* Fallback: media query se data-theme não funcionar */
+@media (prefers-color-scheme: dark) {
+  .login-title,
+  h2 { color: #F5F5F7 !important; }
+}
 h3, .h3 { font-size: 24px; font-weight: 600; line-height: 1.3; }
 h4, .h4 { font-size: 18px; font-weight: 600; line-height: 1.4; }
 

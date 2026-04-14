@@ -102,7 +102,7 @@ function EmptyIndicacoes() {
       <div className="inline-flex items-center justify-center w-14 h-14 rounded-full mb-4" style={{ background: 'var(--color-coral-light)', color: 'var(--color-coral)' }}><UserPlus size={24} /></div>
       <p className="p-ui" style={{ color: 'var(--color-foreground)' }}>Nenhuma indicação ainda</p>
       <p className="body-reg mt-2" style={{ color: 'var(--color-muted-fg)' }}>
-        Clique em "Nova indicação" para cadastrar seu primeiro lead.
+        Clique em &quot;Nova indicação&quot; para cadastrar seu primeiro lead.
       </p>
     </div>
   )

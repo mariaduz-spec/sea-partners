@@ -21,9 +21,16 @@ export default function LoginPage() {
     setStatus('sending')
     setErrorMsg('')
 
+    const normalizedEmail = email.trim().toLowerCase()
+    if (!normalizedEmail.includes('@')) {
+      setErrorMsg('Email invalido')
+      setStatus('error')
+      return
+    }
+
     const supabase = createSupabaseBrowserClient()
     const { error } = await supabase.auth.signInWithOtp({
-      email,
+      email: normalizedEmail,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
@@ -47,13 +54,13 @@ export default function LoginPage() {
           <div
             className="eyebrow inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-5"
             style={{
-              background: 'var(--color-navy)',
+              background: 'var(--color-navy-bg)',
               color: 'white',
             }}
           >
             <span>SEA PARTNERS</span>
           </div>
-          <h2 style={{ color: 'var(--color-navy)' }}>Portal do parceiro</h2>
+          <h2 className="login-title">Portal do parceiro</h2>
           <p
             className="body-reg mt-2"
             style={{ color: 'var(--color-muted-fg)' }}
@@ -80,7 +87,7 @@ export default function LoginPage() {
             >
               <CheckCircle2 size={24} />
             </div>
-            <p className="p-ui" style={{ color: 'var(--color-navy)' }}>
+            <p className="p-ui" style={{ color: 'var(--color-foreground)' }}>
               Link enviado!
             </p>
             <p
@@ -150,7 +157,7 @@ export default function LoginPage() {
               }}
               onMouseEnter={(e) =>
                 !e.currentTarget.disabled &&
-                (e.currentTarget.style.background = 'var(--color-navy)')
+                (e.currentTarget.style.background = 'var(--color-navy-bg)')
               }
               onMouseLeave={(e) =>
                 (e.currentTarget.style.background = 'var(--color-coral)')
@@ -183,7 +190,7 @@ export default function LoginPage() {
                   onClick={() => setShowDev(!showDev)}
                   className="w-full flex items-center justify-between body-reg px-3 py-2 rounded-lg transition"
                   style={{
-                    background: 'var(--color-navy)',
+                    background: 'var(--color-navy-bg)',
                     color: 'white',
                     opacity: 0.7,
                   }}

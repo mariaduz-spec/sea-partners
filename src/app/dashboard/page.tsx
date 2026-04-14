@@ -113,34 +113,6 @@ function MetricCard({ icon, label, value, sub, accent = false }: { icon: React.R
   )
 }
 
-function ImoveisTable({ imoveis, emptyLabel }: { imoveis: Array<{ indication_id: number; property_id: number; code: string; prop_status: string; commission_payment_type: string; commission_display: string; comissao_12m: number; n_meses_ativos: number }>; emptyLabel: string }) {
-  if (imoveis.length === 0) return <p className="body-reg text-center py-8" style={{ color: 'var(--color-muted-fg)' }}>{emptyLabel}</p>
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full">
-        <thead><tr style={{ borderBottom: '1px solid var(--color-border)' }}>
-          <th className="eyebrow text-left py-3" style={{ color: 'var(--color-muted-fg)' }}>Código</th>
-          <th className="eyebrow text-left py-3" style={{ color: 'var(--color-muted-fg)' }}>Status</th>
-          <th className="eyebrow text-left py-3" style={{ color: 'var(--color-muted-fg)' }}>Comissão</th>
-          <th className="eyebrow text-right py-3" style={{ color: 'var(--color-muted-fg)' }}>Total</th>
-          <th className="eyebrow text-right py-3" style={{ color: 'var(--color-muted-fg)' }}>Meses</th>
-        </tr></thead>
-        <tbody>
-          {imoveis.map((i) => (
-            <tr key={i.indication_id} style={{ borderBottom: '1px solid var(--color-border)' }}>
-              <td className="body py-3 font-mono" style={{ color: 'var(--color-foreground)' }}>{i.code}</td>
-              <td className="py-3"><StatusPill status={i.prop_status} /></td>
-              <td className="body py-3" style={{ color: 'var(--color-muted-fg)' }}>{i.commission_display}</td>
-              <td className="body py-3 text-right tabular-nums" style={{ color: i.comissao_12m > 0 ? 'var(--color-coral)' : 'var(--color-muted-fg)' }}>{i.comissao_12m > 0 ? formatBRL(i.comissao_12m) : '—'}</td>
-              <td className="body-reg py-3 text-right tabular-nums" style={{ color: 'var(--color-muted-fg)' }}>{i.n_meses_ativos}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
-}
-
 function StatusPill({ status }: { status: string }) {
   const isActive = status === 'Active'
   return (

@@ -22,7 +22,6 @@ export default function CommissionChart({ data }: Props) {
   const gridColor = isDark ? '#1F2858' : '#EBEBF5'
   const axisColor = isDark ? '#8A8EA3' : '#62656F'
   const barColor = isDark ? '#F56A67' : '#F1605D'
-  const bar2Color = isDark ? '#6B8AFE' : '#4A7AFE'
   const tooltipBg = isDark ? '#141D4A' : '#FFFFFF'
   const tooltipBorder = isDark ? '#2D3769' : '#EBEBF5'
   const tooltipText = isDark ? '#F5F5F7' : '#19191A'

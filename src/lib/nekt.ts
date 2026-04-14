@@ -32,14 +32,19 @@ export class NektError extends Error {
  * Executa um SQL no Nekt (AWS Athena) e retorna linhas parseadas.
  * Todos os campos vem como string — conversao fica por conta do caller (ver parseReal).
  */
-export async function queryNekt<T = Record<string, string>>(sql: string): Promise<T[]> {
+export async function queryNekt<T = Record<string, string>>(sql: string, timeoutMs = 30000): Promise<T[]> {
   const apiKey = process.env.NEKT_API_KEY
   if (!apiKey) {
     throw new NektError('NEKT_API_KEY ausente no ambiente do server')
   }
 
-  // 1. Submeter SQL
-  const submitRes = await fetch(NEKT_ENDPOINT, {
+  // Timeout para evitar request stuck
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), timeoutMs)
+
+  try {
+    // 1. Submeter SQL
+    const submitRes = await fetch(NEKT_ENDPOINT, {
     method: 'POST',
     headers: {
       'x-api-key': apiKey,
@@ -71,7 +76,7 @@ export async function queryNekt<T = Record<string, string>>(sql: string): Promis
   }
 
   // 2. Download do CSV
-  const csvRes = await fetch(url)
+  const csvRes = await fetch(url, { signal: controller.signal })
   if (!csvRes.ok) {
     throw new NektError(`Download CSV HTTP ${csvRes.status}`)
   }
@@ -88,6 +93,9 @@ export async function queryNekt<T = Record<string, string>>(sql: string): Promis
   }
 
   return parsed.data
+  } finally {
+    clearTimeout(timeout)
+  }
 }
 
 /**

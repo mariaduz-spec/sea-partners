@@ -3,12 +3,18 @@ import { NextRequest, NextResponse } from 'next/server'
 
 /**
  * Dev login — cria sessão via OTP admin, bypassing PKCE.
- * SÓ funciona em development mode.
+ * SÓ funciona em development mode E com service role key configurada.
  * Use: GET /api/dev-login?email=xxx
  */
 export async function GET(request: NextRequest) {
+  //多重 segurança: nunca habilitar em produção
   if (process.env.NODE_ENV !== 'development') {
     return NextResponse.json({ error: 'Dev only' }, { status: 403 })
+  }
+
+  // Se não tem service key, também bloqueia
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return NextResponse.json({ error: 'Service not configured' }, { status: 503 })
   }
 
   const { searchParams } = new URL(request.url)

@@ -35,6 +35,15 @@ export default function NewIndicationDialog() {
     }
   }, [open])
 
+  function closeDialog() {
+    setOpen(false)
+    setTimeout(() => {
+      setForm(EMPTY)
+      setStatus('idle')
+      setErrorMsg('')
+    }, 300)
+  }
+
   // ESC fecha
   useEffect(() => {
     if (!open) return
@@ -45,17 +54,7 @@ export default function NewIndicationDialog() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, status])
-
-  function closeDialog() {
-    setOpen(false)
-    setTimeout(() => {
-      setForm(EMPTY)
-      setStatus('idle')
-      setErrorMsg('')
-    }, 300)
-  }
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }))

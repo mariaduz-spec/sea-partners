@@ -29,13 +29,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('system')
   const [resolved, setResolved] = useState<Resolved>('light')
 
-  // Load persisted theme on mount
+  // Load persisted theme on mount - padrão necessário para SSR hydration
   useEffect(() => {
     const saved = window.localStorage.getItem(STORAGE_KEY) as Theme | null
     if (saved === 'light' || saved === 'dark' || saved === 'system') {
       setThemeState(saved)
     }
-  }, [])
+  }, []) // eslint-disable-line react-hooks/set-state-in-effect
 
   // Apply resolved theme to <html data-theme> + listen to system changes
   useEffect(() => {

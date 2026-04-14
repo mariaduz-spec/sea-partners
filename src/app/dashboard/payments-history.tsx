@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { formatBRL } from '@/lib/format'
 import type { DashboardMes } from '@/lib/queries'
-import { ChevronDown, ChevronRight, Coins, Home, Calendar } from 'lucide-react'
+import { ChevronDown, ChevronRight, Home } from 'lucide-react'
 
 type Props = {
   meses: DashboardMes[]

@@ -117,8 +117,6 @@ function ImovelDetail({ imovel, evolucao, loading }: {
   evolucao: MesEvolucao[]
   loading: boolean
 }) {
-  const isActive = imovel.prop_status === 'Active'
-
   return (
     <div
       className="rounded-xl p-5"
