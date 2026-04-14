@@ -104,7 +104,7 @@ export default async function DashboardPage() {
         <div className="rounded-xl p-6" style={{ background: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
           <div className="flex items-start gap-3 mb-4">
             <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg" style={{ background: 'var(--color-coral-light)', color: 'var(--color-coral)' }}><UserPlus size={18} /></div>
-            <div><h4>Suas indicações ({indicacoes.length})</h4><p className="detail-reg mt-1">Clientesindicados por você</p></div>
+            <div><h4>Suas indicações ({indicacoes.length})</h4><p className="detail-reg mt-1">Clientes indicados por você</p></div>
           </div>
           <IndicacoesTable indicacoes={indicacoes} />
         </div>
