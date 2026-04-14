@@ -39,10 +39,17 @@ export default function ImovelSelector({ imoveisAtivos, imoveisInativos }: Props
         value={selected?.indication_id ?? ''}
         onChange={(e) => {
           const id = Number(e.target.value)
-          setSelected(id ? allImoveis.find((i) => i.indication_id === id) || null : null)
+          const found = id ? allImoveis.find((i) => i.indication_id === id) || null : null
+          console.log('onChange:', id, found)
+          setSelected(found)
         }}
-        className="input-bluezone w-full"
-        style={{ marginBottom: 16 }}
+        className="w-full rounded-lg px-3 py-2 border"
+        style={{
+          marginBottom: 16,
+          background: 'var(--color-background)',
+          borderColor: 'var(--color-border)',
+          color: 'var(--color-foreground)'
+        }}
       >
         <option value="">Selecione um imóvel...</option>
         {imoveisAtivos.length > 0 && (
