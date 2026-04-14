@@ -23,6 +23,7 @@ export { formatBRL, formatBRLCompact, describeCommission } from './format'
  */
 
 // Status de pagamento por mês
+// Comissão do mês M é paga no dia 10 do mês M+1
 export function computePaymentStatus(
   mesAno: string,
   today: Date = new Date()
@@ -33,27 +34,36 @@ export function computePaymentStatus(
   }
   const mm = Number(match[1])
   const yyyy = Number(match[2])
+
+  // Data do pagamento = dia 10 do mês seguinte
+  const paymentMonth = mm === 12 ? 1 : mm + 1
+  const paymentYear = mm === 12 ? yyyy + 1 : yyyy
+  const dataPagamento = new Date(Date.UTC(paymentYear, paymentMonth - 1, 10, 10, 0, 0))
+
+  // Hoje em UTC (comparação em dias)
+  const todayCutoff = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getDate(), 10, 0, 0))
+
+  // Mês atual = sempre em apuração (pagamento é no mês que vem)
   const todayMonth = today.getUTCMonth() + 1
   const todayYear = today.getUTCFullYear()
   const isCurrent = mm === todayMonth && yyyy === todayYear
-  const isPrevious =
-    (mm === todayMonth - 1 && yyyy === todayYear) ||
-    (todayMonth === 1 && mm === 12 && yyyy === todayYear - 1)
-
-  const nextMonth = mm === 12 ? 1 : mm + 1
-  const nextYear = mm === 12 ? yyyy + 1 : yyyy
-  const dataPagamento = new Date(Date.UTC(nextYear, nextMonth - 1, 10))
 
   if (isCurrent) return { status: 'em_apuracao', data_pagamento: null, label_status: 'Em apuração' }
-  if (isPrevious) return {
+
+  // Se a data de pagamento já passou, está pago
+  if (dataPagamento <= todayCutoff) {
+    return {
+      status: 'pago',
+      data_pagamento: dataPagamento,
+      label_status: `Pago em ${dataPagamento.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })}`,
+    }
+  }
+
+  // Pagamento ainda não foi feito
+  return {
     status: 'a_pagar',
     data_pagamento: dataPagamento,
     label_status: `A pagar até ${dataPagamento.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`,
-  }
-  return {
-    status: 'pago',
-    data_pagamento: dataPagamento,
-    label_status: `Pago em ${dataPagamento.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })}`,
   }
 }
 
