@@ -5,6 +5,8 @@ import {
   getDashboardSummary,
   getDashboardImoveis,
   getDashboardEvolucaoMensal,
+  getExtratoMensalPorImovel,
+  groupExtratoByCode,
   formatBRL,
   formatBRLCompact,
 } from '@/lib/queries'
@@ -43,12 +45,14 @@ export default async function DashboardPage() {
     )
   }
 
-  const [summary, imoveis, evolucao] = await Promise.all([
+  const [summary, imoveis, evolucao, extrato] = await Promise.all([
     getDashboardSummary(partner.parceiro_id),
     getDashboardImoveis(partner.parceiro_id),
     getDashboardEvolucaoMensal(partner.parceiro_id),
+    getExtratoMensalPorImovel(partner.parceiro_id),
   ])
 
+  const extratoPorCodigo = groupExtratoByCode(extrato)
   const imoveisAtivos = imoveis.filter((i) => i.prop_status === 'Active')
   const imoveisInativos = imoveis.filter((i) => i.prop_status !== 'Active')
   const proximos = evolucao.filter((m) => m.status === 'a_pagar' || m.status === 'em_apuracao')
@@ -70,7 +74,7 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <MetricCard icon={<BadgeDollarSign size={20} />} label="Comissão 12m" value={formatBRLCompact(summary.comissao_12m_estimada)} sub={`${summary.meses_com_receita} meses com receita`} accent />
+        <MetricCard icon={<BadgeDollarSign size={20} />} label="Comissão Total" value={formatBRLCompact(summary.comissao_12m_estimada)} sub={`${summary.meses_com_receita} meses com receita`} accent />
         <MetricCard icon={<TrendingUp size={20} />} label="Média mensal" value={formatBRLCompact(summary.media_comissao_mensal)} sub="média por mês ativo" />
         <MetricCard icon={<Wallet size={20} />} label="Indicações" value={String(summary.total_indicacoes)} sub={`${summary.indicacoes_won} ganha${summary.indicacoes_won === 1 ? '' : 's'} · ${summary.indicacoes_in_progress} em curso`} />
       </div>
@@ -86,7 +90,7 @@ export default async function DashboardPage() {
 
       <div className="rounded-xl p-6 mb-6" style={{ background: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
         <h4>Evolução mensal</h4>
-        <p className="detail-reg mt-1 mb-4">Receita dos imóveis nos últimos 12 meses</p>
+        <p className="detail-reg mt-1 mb-4">Receita dos imóveis por mês</p>
         <CommissionChart data={evolucao} />
       </div>
 
@@ -143,7 +147,7 @@ function ImoveisTable({ imoveis, emptyLabel }: { imoveis: Array<{ indication_id:
           <th className="eyebrow text-left py-3" style={{ color: 'var(--color-muted-fg)' }}>Código</th>
           <th className="eyebrow text-left py-3" style={{ color: 'var(--color-muted-fg)' }}>Status</th>
           <th className="eyebrow text-left py-3" style={{ color: 'var(--color-muted-fg)' }}>Comissão</th>
-          <th className="eyebrow text-right py-3" style={{ color: 'var(--color-muted-fg)' }}>12m</th>
+          <th className="eyebrow text-right py-3" style={{ color: 'var(--color-muted-fg)' }}>Total</th>
           <th className="eyebrow text-right py-3" style={{ color: 'var(--color-muted-fg)' }}>Meses</th>
         </tr></thead>
         <tbody>
